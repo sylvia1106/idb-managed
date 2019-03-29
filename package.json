@@ -1,0 +1,43 @@
+{
+  "name": "idb-managed",
+  "version": "1.0.0",
+  "description": "Easy API wrapper for IndexedDB, with DB manager to manage local DBs. Based on idb.",
+  "main": "./build/js/index.js",
+  "scripts": {
+    "test": "gulp && jest --coverage"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sylvia1106/idb-managed.git"
+  },
+  "keywords": [
+    "IndexedDB",
+    "DB",
+    "manager"
+  ],
+  "author": "sylvia",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sylvia1106/idb-managed/issues"
+  },
+  "homepage": "https://github.com/sylvia1106/idb-managed#readme",
+  "devDependencies": {
+    "@babel/core": "^7.3.4",
+    "@babel/preset-env": "^7.3.4",
+    "del": "^3.0.0",
+    "eslint": "^5.14.1",
+    "fake-indexeddb": "^2.0.5",
+    "gulp": "^3.9.1",
+    "gulp-babel": "^8.0.0",
+    "gulp-replace": "^1.0.0",
+    "gulp-util": "^3.0.8",
+    "jest": "^24.1.0",
+    "run-sequence": "^2.2.1",
+    "standard-version": "^5.0.0",
+    "webpack": "^4.29.5",
+    "webpack-bundle-analyzer": "^3.0.4"
+  },
+  "files": [
+    "/build"
+  ]
+}
