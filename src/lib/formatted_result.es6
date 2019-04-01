@@ -16,11 +16,14 @@ function resultFormatter(code, msg) {
 }
 export default {
   'DB_NOT_SUPPORT': resultFormatter(100, 'IndexedDB is not supported.'),
-  'DB_OPEN_FAIL': resultFormatter(203, 'Open DB failed.'),
+  'PARAM_INVALID': resultFormatter(101, 'Invalid parameter.'),
   'SUCC': resultFormatter(200, 'Successfully done.'),
-  'DB_NOT_FOUND': resultFormatter(301, 'DB does not exist.'),
-  'STORE_NOT_FOUND': resultFormatter(302, 'Store does not exist.'),
-  'ITEM_EXPIRED': resultFormatter(403, 'Item expired.'),
-  'ITEM_NOT_FOUND': resultFormatter(404, 'Item does not exist.'),
-  'GET_ITEM_FAIL': resultFormatter(405, 'Get Item failed.')
+  'DB_NOT_FOUND': resultFormatter(201, 'DB does not exist.'),
+  'STORE_NOT_FOUND': resultFormatter(202, 'Store does not exist.'),
+  'DB_OPEN_FAIL': resultFormatter(203, 'Open DB failed.'),
+  'DB_ADD_ITEMS_FAIL': resultFormatter(204, 'Add items failed.'),
+  'GET_ITEM_FAIL': resultFormatter(205, 'Get Item failed.'),
+  'DB_DELETE_FAIL': resultFormatter(208, 'Delete DB failed.'),
+  'ITEM_EXPIRED': resultFormatter(301, 'Item expired.'),
+  'ITEM_NOT_FOUND': resultFormatter(302, 'Item does not exist.')
 }
