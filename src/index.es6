@@ -22,15 +22,18 @@ function _customDBConfigChecker(dbConfig) {
     throw 'storeList needs to be an Array'
   }
   dbConfig.storeList.forEach(store => {
-    if (typeof store.storeName !== 'string') {
+    if (typeof store.storeName !== 'string' || !store.storeName) {
       throw 'storeName needs to be a string'
+    }
+    if (store.primaryKey && typeof store.primaryKey !== 'string') {
+      throw 'primaryKey needs to be a string if not undefined'
     }
     if (store.indexList) {
       if (!(store.indexList instanceof Array)) {
         throw 'indexList needs to be an Array if not undefined'
       } else {
         store.indexList.forEach(index => {
-          if (typeof index.indexName !== 'string') {
+          if (typeof index.indexName !== 'string' || !index.indexName) {
             throw 'indexName needs to be a string'
           }
         })
@@ -60,7 +63,7 @@ function _getInRangeParamChecker(rangeOb) {
     if (typeof rangeOb !== 'object') {
       throw 'rangeOb needs to be an object if not undefined'
     }
-    if (typeof rangeOb.indexName !== 'string') {
+    if (typeof rangeOb.indexName !== 'string' || !rangeOb.indexName) {
       throw 'indexName needs to be a string'
     }
   }
@@ -83,10 +86,13 @@ export function idbIsSupported() {
  * @async
  * @param {string} key - Item's key.
  * @param {(Object | string | number | boolean)} value - Item's value.
- * @param {timestamp} [expiredTime] - The expired time of this item data in format of timestamp in miliseconds. Default value is 7 days after when this method is called.
+ * @param {timestamp} [expireTime] - The expired time of this item data in format of timestamp in miliseconds. Default value is 7 days after when this method is called.
  * @returns {Promise<FormatResult>} Resolve FormatResult['SUCC'] if set successfully, otherwise resolve FormatResult with failed msg.
  */
-export function setKV(key, value, expiredTime) {
+export function setKV(key, value, expireTime) {
+  return new Promise((resolve, reject) => {
+    idb.create
+  })
 }
 
 /**
@@ -94,7 +100,7 @@ export function setKV(key, value, expiredTime) {
  * @todo 
  * @async
  * @param {string} key - Stored item's key.
- * @returns {Promise<FormatResult>} Resolve FormatResult['SUCC'] with KV item in data, resolve FormatResult with failed msg if anything wrong happened.
+ * @returns {Promise<FormatResult>} Resolve FormatResult['SUCC'] with item in data, resolve FormatResult with failed msg if anything wrong happened.
  */
 export function getKV(key) {
 }
@@ -124,7 +130,7 @@ export function getItemFromDB(dbName, storeName, primaryKeyValue) {
  * @param {string} [rangeOb.upperValue] - UpperValue of range.
  * @param {boolean} [rangeOb.lowerExclusive = false] - LowerValue is exclusive in range.
  * @param {boolean} [rangeOb.upperExclusive = false] - UpperValue is exclusive in range.
- * @returns {Promise<FormatResult>} Resolve FormatResult['SUCC'] with item array in data, resolve FormatResult with failed mag if anything wrong happened.
+ * @returns {Promise<FormatResult>} Resolve FormatResult['SUCC'] with itemArray in data, resolve FormatResult with failed mag if anything wrong happened.
  */
 export function getItemsInRangeFromDB(dbName, storeName, rangeOb) {
   return new Promise((resolve, reject) => {
@@ -157,7 +163,7 @@ export class CustomDB {
    * @param {Object[]} [dbConfig.storeList[].indexList] - Index list of this store.
    * @param {string} dbConfig.storeList[].indexList[].indexName - This index's name.
    * @param {boolean} [dbConfig.storeList[].indexList[].unique = false] - This index's uniqueness. false as default.
-   * @param {non-negative integer} [dbConfig.dbVersion = 0] - DB's version. 0 as default. If dbVersion is no bigger than current DB's version in the browser, idb-managed will use current DB's config and ignore this dbConfig.
+   * @param {non-negative integer} [dbConfig.dbVersion = 1] - DB's version. 1 as default. If dbVersion is no bigger than current DB's version in the browser, idb-managed will use current DB's config and ignore this dbConfig.
    */
   constructor(dbConfig) {
     try {
@@ -167,7 +173,7 @@ export class CustomDB {
     }
     this.dbName = dbConfig.dbName
     this.storeList = dbConfig.storeList
-    this.dbVersion = dbConfig.dbVersion || 0
+    this.dbVersion = dbConfig.dbVersion || 1
   }
   /**
    * @todo 
@@ -175,7 +181,7 @@ export class CustomDB {
    * @param {Object[]} itemList - Items to be added into the CustomDB.
    * @param {string} itemList[].storeName - Store's name.
    * @param {Object} itemList[].item - Item's value.
-   * @param {timestamp} [expiredTime] - The expired time of this item data in format of timestamp in miliseconds. Default value is 7 days after when this method is called.
+   * @param {timestamp} [itemList[].expireTime] - The expired time of this item data in format of timestamp in miliseconds. Default value is 7 days after when this method is called.
    * @returns {Promise<FormatResult>} Resolve FormatResult['SUCC'] if add successfully, otherwise resolve FormatResult with failed msg.
    */
   addItems(itemList) {
@@ -231,7 +237,7 @@ export class CustomDB {
    * @param {string} [rangeOb.upperValue] - UpperValue of range.
    * @param {boolean} [rangeOb.lowerExclusive = false] - LowerValue is exclusive in range.
    * @param {boolean} [rangeOb.upperExclusive = false] - UpperValue is exclusive in range.
-   * @returns {Promise<FormatResult>} Resolve FormatResult['SUCC'] with item array in data, resolve FormatResult with failed mag if anything wrong happened.
+   * @returns {Promise<FormatResult>} Resolve FormatResult['SUCC'] with itemArray in data, resolve FormatResult with failed mag if anything wrong happened.
    */
   getItemsInRange(storeName, rangeOb) {
     return new Promise((resolve) => {

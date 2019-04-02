@@ -20,10 +20,11 @@ export default {
   'SUCC': resultFormatter(200, 'Successfully done.'),
   'DB_NOT_FOUND': resultFormatter(201, 'DB does not exist.'),
   'STORE_NOT_FOUND': resultFormatter(202, 'Store does not exist.'),
-  'DB_OPEN_FAIL': resultFormatter(203, 'Open DB failed.'),
-  'DB_ADD_ITEMS_FAIL': resultFormatter(204, 'Add items failed.'),
-  'GET_ITEM_FAIL': resultFormatter(205, 'Get Item failed.'),
-  'DB_DELETE_FAIL': resultFormatter(208, 'Delete DB failed.'),
+  'OPEN_DB_FAIL': resultFormatter(203, 'Open DB failed.'),
+  'ADD_ITEM_FAIL': resultFormatter(204, 'Add item failed.'),
+  'GET_ITEM_FAIL': resultFormatter(205, 'Get item failed.'),
+  'GET_ITEMS_IN_RANGE_FAIL': resultFormatter(206, 'Get items in range failed.'),
+  'DELETE_DB_FAIL': resultFormatter(208, 'Delete DB failed.'),
   'ITEM_EXPIRED': resultFormatter(301, 'Item expired.'),
   'ITEM_NOT_FOUND': resultFormatter(302, 'Item does not exist.')
 }
