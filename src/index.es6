@@ -7,6 +7,7 @@ const SINGLE_DATA_DB_NAME = 'SINGLE_DATA_DB'
 const SINGLE_DATA_STORE_NAME = 'SINGLE_DATA_STORE'
 const SINGLE_DATA_PRIMARY_KEYNAME = 'keyName'
 const SINGLE_DATA_VALUENAME = 'value'
+const DEFAULT_EXPIRE_MILISECONDS = 7 * 24 * 3600 * 1000
 
 /**
  * Throws errorMsg if config not valid.
@@ -54,6 +55,9 @@ function _customDBAddItemsParamChecker(itemList) {
   itemList.forEach(item => {
     if (!item.storeName) {
       throw 'storeName is required'
+    }
+    if (item.expireTime !== undefined && (isNaN(parseInt(item.expireTime)) || item.expireTime < 0 || isNaN(new Date(item.expireTime).getTime()))) {
+      throw 'expireTime needs to be a non-negative integer and also a valid timestamp if not undefined'
     }
   })
 }
@@ -181,7 +185,7 @@ export class CustomDB {
    * @param {Object[]} itemList - Items to be added into the CustomDB.
    * @param {string} itemList[].storeName - Store's name.
    * @param {Object} itemList[].item - Item's value.
-   * @param {timestamp} [itemList[].expireTime] - The expired time of this item data in format of timestamp in miliseconds. Default value is 7 days after when this method is called.
+   * @param {timestamp} [itemList[].expireTime] - The expired time of this item data in format of timestamp in miliseconds. Default value is 7 days when this method is called.
    * @returns {Promise<FormatResult>} Resolve FormatResult['SUCC'] if add successfully, otherwise resolve FormatResult with failed msg.
    */
   addItems(itemList) {
@@ -191,6 +195,12 @@ export class CustomDB {
       } catch (errorMsg) {
         resolve(FormatResult['PARAM_INVALID'].setData({desc: `Add items failed: ${errorMsg}.`}))
       }
+      // Set default expireTime
+      itemList.forEach((item) => {
+        if (item.expireTime === undefined) {
+          item.expireTime = Date.now() + DEFAULT_EXPIRE_MILISECONDS
+        }
+      })
       dbWrapper.openDB(this.dbName, this.storeList, this.dbVersion)
         .then((db) => {
           return dbWrapper.deleteExpiredItems(db, itemList.map(item => item.storeName))
