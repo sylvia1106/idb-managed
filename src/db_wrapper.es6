@@ -1,7 +1,6 @@
 import idb from './lib/idb'
 import dbEnvChecker from './lib/db_env_checker'
 import FormatResult from './lib/formatted_result'
-import { format } from 'url'
 const IDB_MANAGER_DB_NAME = 'IDB_MANAGER_DB' // This db manages all dbs that created locally, stores all dbs' info
 const IDB_MANAGER_DB_STORE_NAME = 'IDB_MANAGER_STORE'
 const IDB_MANAGER_DB_STORE_ITEM_PROPERTY_NAMES = {
@@ -23,6 +22,7 @@ function __deduplicateList(list) {
   return deduplicatedList
 }
 /**
+ * @todo
  * @param upgradeDB - The upgraded DB when upgradeneeded event fired by idb.open.
  * @param {Object[]} storeList - Stores need to be created when the DB is opening.
  */
@@ -34,27 +34,27 @@ function _upgradeDBWithStoreList(upgradeDB, storeList) {
         let storePresent = upgradeDB.transaction.objectStore(store.storeName)
         store.indexList.map((index) => {
           if (!storePresent.indexNames.contains(index.indexName)) {
-            storePresent.createIndex(index.indexName, index.indexName, { unique: Boolean(index.unique) })
+            storePresent.createIndex(index.indexName, index.indexName, {unique: Boolean(index.unique)})
           }
         })
       } else {
         let storeToCreate
         // Create store and create index for primaryKey.
         if (store.primaryKey) {
-          storeToCreate = upgradeDB.createObjectStore(store.storeName, { keyPath: store.primaryKey })
-          storeToCreate.createIndex(store.primaryKey, store.primaryKey, { unique: true })
+          storeToCreate = upgradeDB.createObjectStore(store.storeName, {keyPath: store.primaryKey})
+          storeToCreate.createIndex(store.primaryKey, store.primaryKey, {unique: true})
         } else {
-          storeToCreate = upgradeDB.createObjectStore(store.storeName, { keyPath: 'id', autoIncrement: true })
-          storeToCreate.createIndex('id', 'id', { unique: true })
+          storeToCreate = upgradeDB.createObjectStore(store.storeName, {keyPath: 'id', autoIncrement: true})
+          storeToCreate.createIndex('id', 'id', {unique: true})
         }
         // Create indexes that are defined in storeList.
         store.indexList.map((index) => {
-          storeToCreate.createIndex(index.indexName, index.indexName, { unique: Boolean(index.unique) })
+          storeToCreate.createIndex(index.indexName, index.indexName, {unique: Boolean(index.unique)})
         })
         // Create index for expireTime for later expired data deletion.
-        storeToCreate.createIndex(EXPIRETIME_KEYNAME, EXPIRETIME_KEYNAME, { unique: false })
+        storeToCreate.createIndex(EXPIRETIME_KEYNAME, EXPIRETIME_KEYNAME, {unique: false})
         // Create index for updateTime for later ordering data priority.
-        storeToCreate.createIndex(UPDATETIME_KEYNAME, UPDATETIME_KEYNAME, { unique: false })
+        storeToCreate.createIndex(UPDATETIME_KEYNAME, UPDATETIME_KEYNAME, {unique: false})
       }
     })
   } catch (e) {
@@ -69,7 +69,7 @@ function _upgradeIDBManagerDB(upgradeDB) {
 /**
  * @async
  * @param dbName
- * @returns {Promise<FormatResult>} Resolve FormatResult['SUCC'] with dbInfo in data if this DB is registered in IDB_MANAGER; resolve FormatResult with failed msg if DB does not exist or error happens.
+ * @returns {Promise<FormatResult>} Resolve FormatResult['SUCC'] with dbInfo in data if this DB is registered in manager; resolve FormatResult with failed msg if DB does not exist or error happens.
  */
 function _getDBInfo(dbName) {
   return idb.open(IDB_MANAGER_DB_NAME, 1, (upgradeDB) => {
@@ -79,29 +79,30 @@ function _getDBInfo(dbName) {
       return _getItemFromStore(db, IDB_MANAGER_DB_STORE_NAME, dbName)
         .then((formatResult) => {
           db.close() // Close db after using.
-          return formatResult
+          if (formatResult.code === FormatResult['SUCC'].code) {
+            return FormatResult['SUCC'].setData({dbInfo: formatResult.data.itemValue})
+          } else if (formatResult.code === FormatResult['ITEM_NOT_FOUND'].code || formatResult.code === FormatResult['ITEM_EXPIRED'].code) {
+            return FormatResult['DB_NOT_FOUND']
+          } else {
+            return FormatResult['UNEXPECTED_ERR']
+          }
+        })
+        .catch(e => {
+          db.close()
+          return FormatResult['GET_ITEM_FAIL'].setData({desc: 'Get item from manager failed', err: e})
         })
     })
-    .then((formatResult) => {
-      if (formatResult.code === FormatResult['SUCC'].code) {
-        return FormatResult['SUCC'].setData({ dbInfo: formatResult.data.itemValue })
-      } else if (formatResult.code === FormatResult['ITEM_NOT_FOUND'].code || formatResult.code === FormatResult['ITEM_EXPIRED'].code) {
-        return FormatResult['DB_NOT_FOUND']
-      } else {
-        return formatResult
-      }
-    })
     .catch((e) => {
-      return FormatResult['OPEN_DB_FAIL'].setData({ desc: 'Open IDB_MANAGER_DB failed', err: e })
+      return FormatResult['OPEN_DB_FAIL'].setData({desc: 'Open manager failed', err: e})
     })
 }
 
 /**
- * Add this DB item into IDB_MANAGER
+ * Add this DB item into manager.
  * @param dbName - Name of the DB to be added.
  * @param storeList - StoreList of the DB, will be updated if needed.
- * @param dbVersion - Version of the DB, will be updated if it is higher than the present version exists in IDB_MANAGER.
- * @returns {Promise<FormatResult>} Resolve FormatResult['SUCC'] if register successfully, otherwise resolve FormatResult with failed msg.
+ * @param dbVersion - Version of the DB, will be updated if it is higher than the present version exists in manager.
+ * @returns {Promise<FormatResult>} Resolve FormatResult['SUCC'] with newStoreList and newDBVersion in data if register successfully, otherwise resolve FormatResult with failed msg.
  */
 function _registerDBToManager(dbName, storeList, dbVersion) {
   return idb.open(IDB_MANAGER_DB_NAME, 1, (upgradeDB) => {
@@ -110,34 +111,56 @@ function _registerDBToManager(dbName, storeList, dbVersion) {
     .then((db) => {
       return _getItemFromStore(db, IDB_MANAGER_DB_STORE_NAME, dbName)
         .then((formatResult) => {
-          return {db, formatResult}
+          if (formatResult.code === FormatResult['SUCC'].code) {
+            let dbInfo = formatResult.data.dbInfo
+            let storeListPresent = dbInfo[IDB_MANAGER_DB_STORE_ITEM_PROPERTY_NAMES['storeList']]
+            let dbVersionPresent = dbInfo[IDB_MANAGER_DB_STORE_ITEM_PROPERTY_NAMES['dbVersion']]
+            if (dbVersion > dbVersionPresent) {
+              return undefined // Update dbVersion and storeList then.
+            } else {
+              throw FormatResult['SUCC'].setData({newStoreList: storeListPresent, newDBVersion: dbVersionPresent}) // Early ends with current storeList and dbVersion as new ones in data, no need to update dbInfo then.
+            }
+          } else if (formatResult.code === FormatResult['ITEM_NOT_FOUND'].code || formatResult.code === FormatResult['ITEM_EXPIRED'].code) {
+            return undefined // Add dbInfo then.
+          } else {
+            throw formatResult // Early ends when error happens.
+          }
+        })
+        .then(() => {
+          // Put new dbInfo in store.
+          let newDBNameOb = Object.defineProperty({}, IDB_MANAGER_DB_STORE_ITEM_PROPERTY_NAMES['primaryKey'], {value: dbName} )
+          let newDBStoreListOb = Object.defineProperty({}, IDB_MANAGER_DB_STORE_ITEM_PROPERTY_NAMES['storeList'], {value: storeList} )
+          let newDBVersionOb = Object.defineProperty({}, IDB_MANAGER_DB_STORE_ITEM_PROPERTY_NAMES['dbVersion'], {value: dbVersion} )
+          let defaultExpireTimeOb = Object.defineProperty({}, EXPIRETIME_KEYNAME, {value: -1}) // DB item never expires.
+          return _putItemsToStores(db, [{storeName: IDB_MANAGER_DB_STORE_NAME, item: Object.assign({}, newDBNameOb, newDBStoreListOb, newDBVersionOb, defaultExpireTimeOb)}])
+        })
+        .then((formatResult) => {
+          db.close()
+          if (formatResult.code === FormatResult['SUCC'].code) {
+            return FormatResult['SUCC'].setData({newStoreList: storeList, newDBVersion: dbVersion})
+          } else {
+            return formatResult
+          }
+        })
+        .catch((e) => {
+          db.close()
+          if (e.isResultFormat) {
+            return e // e is a formatResult.
+          } else {
+            return FormatResult['GET_ITEM_FAIL'].setData({desc: 'Get dbInfo from manager failed.', err: e})
+          }
         })
     })
-    .then(({db, formatResult}) => {
-      if (formatResult.code === FormatResult['SUCC'].code) {
-        let dbInfo = formatResult.data.dbInfo
-        let storeListPresent = dbInfo[IDB_MANAGER_DB_STORE_ITEM_PROPERTY_NAMES['storeList']]
-        let dbVersionPresent = dbInfo[IDB_MANAGER_DB_STORE_ITEM_PROPERTY_NAMES['dbVersion']]
-        if (dbVersion > dbVersionPresent) {
-          // update dbVersion and storeList
-          let trans = db.transaction(IDB_MANAGER_DB_STORE_NAME, 'readwrite')
-          let store = trans.objectStore(storeName)
-        } else {
-          // todo 
-        }
-      } else if (formatResult.code === FormatResult['ITEM_NOT_FOUND'].code || formatResult.code === FormatResult['ITEM_EXPIRED'].code) {
-
-      } else {
-        resolve(formatResult)
-      }
+    .catch((e) => {
+      return FormatResult['OPEN_DB_FAIL'].setData({desc: 'Register to manager failed.', err: e})
     })
 }
 
 /**
- * Delete this DB item in IDB_MANAGER
+ * Delete this DB item in manager.
  * @async
- * @param dbName Name of the DB to be deleted
- * @returns FormatResult['SUCC'] if delete successfully, otherwise FormatResult with failed msg.
+ * @param dbName Name of the DB to be cancelled
+ * @returns {Promise<FormatResult>} FormatResult['SUCC'] if delete successfully, otherwise FormatResult with failed msg.
  */
 function _cancelDBFromManager(dbName) {
   return idb.open(IDB_MANAGER_DB_NAME, 1, (upgradeDB) => {
@@ -148,9 +171,14 @@ function _cancelDBFromManager(dbName) {
       let store = trans.objectStore(IDB_MANAGER_DB_STORE_NAME)
       store.delete(dbName)
       return trans.complete
-    })
-    .then(() => {
-      return FormatResult['SUCC']
+        .then(() => {
+          db.close()
+          return FormatResult['SUCC']
+        })
+        .catch((e) => {
+          db.close()
+          throw e
+        })
     })
     .catch((e) => {
       return FormatResult['DELETE_DB_FAIL'].setData({desc: 'Cancel DB from DB Manager failed.', err: e})
@@ -166,117 +194,111 @@ function _cancelDBFromManager(dbName) {
  * @return {Promise<FormatResult>} Resolve FormatResult['SUCC'] with itemValue in data if item exists and not expired, otherwise resolve FormatResult with failed msg.
  */
 function _getItemFromStore(db, storeName, primaryKeyValue) {
-  if (db.objectStoreNames.contains(storeName)) {
-    let trans = db.transaction(storeName, 'readonly')
-    let store = trans.objectStore(storeName)
-    return store.get(primaryKeyValue)
-      .then((itemValue) => {
-        if (itemValue === undefined) {
-          return FormatResult['ITEM_NOT_FOUND']
-        } else if (itemValue[EXPIRETIME_KEYNAME] > 0 && itemValue[EXPIRETIME_KEYNAME] < Date.now()) {
-          return FormatResult['ITEM_EXPIRED']
-        } else {
-          return FormatResult['SUCC'].setData({itemValue})
-        }
-      })
-      .catch((e) => {
-        return FormatResult['GET_ITEM_FAIL'].setData({ desc: 'Function .get failed when get item from store', err: e })
-      })
-  } else {
-    return FormatResult['STORE_NOT_FOUND']
+  try {
+    if (db.objectStoreNames.contains(storeName)) {
+      let trans = db.transaction(storeName, 'readonly')
+      let store = trans.objectStore(storeName)
+      return store.get(primaryKeyValue)
+        .then((itemValue) => {
+          if (itemValue === undefined) {
+            return FormatResult['ITEM_NOT_FOUND']
+          } else if (itemValue[EXPIRETIME_KEYNAME] > 0 && itemValue[EXPIRETIME_KEYNAME] < Date.now()) {
+            return FormatResult['ITEM_EXPIRED']
+          } else {
+            return FormatResult['SUCC'].setData({itemValue})
+          }
+        })
+        .catch((e) => {
+          return FormatResult['GET_ITEM_FAIL'].setData({desc: 'Function .get failed when get item from store', err: e})
+        })
+    } else {
+      return Promise.resolve(FormatResult['STORE_NOT_FOUND'])
+    }
+  } catch (e) {
+    return Promise.resolve(FormatResult['GET_ITEM_FAIL'].setData({desc: 'Get item from store failed.', err: e}))
   }
 }
 
 /**
  * Put items in a transaction, it can roll back if any addition failed in the process.
+ * @async
  * @param db
- * @param itemList
+ * @param {Object[]} itemList - Items to be put in.
+ * @param {string} itemList[].storeName - Item's storeName
+ * @param {Object} itemList[].item - Item itself, it's expireTime property will be set to 0 if not set, which means this item will be expired immediately. Normally, each item should have specific expireTime.
+ * @returns {Promise<FormatResult>} Resolve FormatResult['SUCC'] if put successfully, otherwise resolve FormatResult with failed msg.
  */
 function _putItemsToStores(db, itemList) {
-  return new Promise((resolve) => {
-    let storeNames = __deduplicateList(itemList.map(item => item.storeName))
+  let storeNames = __deduplicateList(itemList.map(item => item.storeName))
+  try {
     storeNames.forEach((storeName) => {
       if (!db.objectStoreNames.contains(storeName)) {
-        resolve(FormatResult['STORE_NOT_FOUND']) // Resolve early if store does not exist.
+        throw FormatResult['STORE_NOT_FOUND']
       }
     })
+  } catch (formatResult) {
+    return Promise.resolve(formatResult)
+  }
+  try {
     let trans = db.transaction(storeNames, 'readwrite')
     itemList.forEach((item) => {
       let store = trans.objectStore(item.storeName)
-      let wrappedItem = Object.assign({}, item, Object.defineProperty({}, UPDATETIME_KEYNAME, {value: Date.now()}))
+      let defaultExpireTimeOb = Object.defineProperty({}, EXPIRETIME_KEYNAME, {value: 0})
+      let updateTimeOb = Object.defineProperty({}, UPDATETIME_KEYNAME, {value: Date.now()})
+      let wrappedItem = Object.assign({}, defaultExpireTimeOb, item, updateTimeOb)
       store.put(wrappedItem)
-        .catch((e) => {
+        .catch(() => {
           try {
-            trans.abort() // Transaction rolls back.
+            trans.abort() // Transaction aborts and rolls back.
           } catch (e) {
             // Noop, only to catch all the errors because of the transaction abortion.
           }
         })
     })
-    trans
-    if (db.objectStoreNames.contains(storeName)) {
-      let store = trans.objectStore(storeName)
-      store.put(wrappedItem)
-
-    } else {
-      resolve(FormatResult['STORE_NOT_FOUND'])
-    }
-  })
+    return trans.complete
+      .then(() => {
+        return FormatResult['SUCC']
+      })
+      .catch((e) => {
+        return FormatResult['ADD_ITEMS_FAIL'].setData({desc: 'Add items transaction fails.', err: e})
+      })
+  } catch (e) {
+    return Promise.resolve(FormatResult['ADD_ITEMS_FAIL'].setData({desc: 'Add items fails.', err: e}))
+  }
 }
 
 
 /**
- * Register DB to IDB_MANAGER before open it.
+ * Register DB to manager before open it.
  * @param dbName
  * @param storeList
  * @param dbVersion
  * @returns {Promise<FormatResult>} Resolve FormatResult['SUCC'] with db in data, otherwise resolve FormatResult with failed msg.
  */
 function openDBWithCreation(dbName, storeList, dbVersion) {
-  return new Promise((resolve) => {
-    _getDBInfo(dbName)
-      .then((formatResult) => {
-        if (formatResult.code === FormatResult['SUCC'].code) {
-          let dbInfo = formatResult.data.dbInfo
-          let storeListPresent = dbInfo[IDB_MANAGER_DB_STORE_ITEM_PROPERTY_NAMES['storeList']]
-          let dbVersionPresent = dbInfo[IDB_MANAGER_DB_STORE_ITEM_PROPERTY_NAMES['dbVersion']]
-          if (dbVersion > dbVersionPresent) {
-            return { registerToManager: true, storeList: storeList, dbVersion: dbVersion }
-          } else {
-            return { registerToManager: false, storeList: storeListPresent, dbVersion: dbVersionPresent }
-          }
-        } else if (formatResult.code === FormatResult['DB_NOT_FOUND'].code) {
-          return { registerToManager: true, storeList: storeList, dbVersion: dbVersion }
-        } else {
-          resolve(formatResult)
-        }
+  return _registerDBToManager(dbName, storeList, dbVersion)
+    .then((formatResult) => {
+      if (formatResult.code === FormatResult['SUCC'].code) {
+        return {storeList: formatResult.data.newDBStoreList, dbVersion: formatResult.data.newDBVersion}
+      } else {
+        throw formatResult
+      }
+    })
+    .then(({storeList, dbVersion}) => {
+      return idb.open(dbName, dbVersion, (upgradeDB) => {
+        _upgradeDBWithStoreList(upgradeDB, storeList)
       })
-      .then(({registerToManager, storeList, dbVersion}) => {
-        if (registerToManager) {
-          return _registerDBToManager(dbName, storeList, dbVersion)
-            .then((formatResult) => {
-              if (formatResult.code === FormatResult['SUCC'].code) {
-                return {storeList, dbVersion}
-              } else {
-                resolve(formatResult)
-              }
-            })
-        } else {
-          return {storeList, dbVersion}
-        }
-      })
-      .then(({storeList, dbVersion}) => {
-        return idb.open(dbName, dbVersion, (upgradeDB) => {
-          _upgradeDBWithStoreList(upgradeDB, storeList)
-        })
-      })
-      .then((db) => {
-        resolve(FormatResult['SUCC'].setData({db}))
-      })
-      .catch((e) => {
-        resolve(FormatResult['OPEN_DB_FAIL'].setData({ desc:'Open DB with creation failed.', err: e }))
-      })
-  })
+    })
+    .then((db) => {
+      return FormatResult['SUCC'].setData({db})
+    })
+    .catch((e) => {
+      if (e.isResultFormat) {
+        return e
+      } else {
+        return FormatResult['OPEN_DB_FAIL'].setData({desc:'Open DB with creation failed.', err: e})
+      }
+    })
 }
 
 /**
@@ -294,18 +316,22 @@ function openDBWithoutCreation(dbName) {
         let storeList = dbInfo[IDB_MANAGER_DB_STORE_ITEM_PROPERTY_NAMES['storeList']]
         let dbVersion = dbInfo[IDB_MANAGER_DB_STORE_ITEM_PROPERTY_NAMES['dbVersion']]
         return idb.open(dbName, dbVersion, (upgradeDB) => {
-          // Upgrade DB in case DB is deleted manually, althrough it was registered in IDB_MANAGER.
+          // Upgrade DB in case this DB is deleted manually, althrough it has been registered in manager.
           _upgradeDBWithStoreList(upgradeDB, storeList)
         })
       } else {
-        return formatResult // Resolve early if get DB info failed.
+        throw formatResult // Early ends if get DB info failed.
       }
     })
     .then((db) => {
       return FormatResult['SUCC'].setData({db})
     })
     .catch((e) => {
-      return FormatResult['OPEN_DB_FAIL'].setData({ desc: 'Open DB without creation failed.', err: e })
+      if (e.isResultFormat) {
+        return e
+      } else {
+        return FormatResult['OPEN_DB_FAIL'].setData({desc: 'Open DB without creation failed.', err: e})
+      }
     })
 }
 
@@ -326,13 +352,32 @@ function deleteItems() {
 }
 
 function deleteDB(dbName) {
+  return _cancelDBFromManager()
+    .then((formatResult) => {
+      if (formatResult.code === FormatResult['SUCC'].code) {
+        return idb.delete(dbName)
+      } else {
+        throw formatResult
+      }
+    })
+    .then(() => {
+      return FormatResult['SUCC']
+    })
+    .catch((e) => {
+      if (e.isResultFormat) {
+        return e
+      } else {
+        return FormatResult['DELETE_DB_FAIL'].setData({desc: 'Delete DB failed.', err: e})
+      }
+    })
 }
 
 const DBWrapper = {
   addItems,
   getItem,
   getItemsBetweenRange,
-  deleteItems
+  deleteItems,
+  deleteDB
 }
 
 export default DBWrapper

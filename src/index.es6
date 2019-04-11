@@ -86,7 +86,7 @@ export function idbIsSupported() {
 
 /**
  * Store one KV item into DB.
- * @todo 
+ * @todo
  * @async
  * @param {string} key - Item's key.
  * @param {(Object | string | number | boolean)} value - Item's value.
@@ -101,7 +101,7 @@ export function setKV(key, value, expireTime) {
 
 /**
  * Get one KV item from DB.
- * @todo 
+ * @todo
  * @async
  * @param {string} key - Stored item's key.
  * @returns {Promise<FormatResult>} Resolve FormatResult['SUCC'] with item in data, resolve FormatResult with failed msg if anything wrong happened.
@@ -111,7 +111,7 @@ export function getKV(key) {
 
 /**
  * Get one item from specific DB.
- * @todo 
+ * @todo
  * @async
  * @param {string} dbName - DB's name.
  * @param {string} storeName - Store's name.
@@ -124,7 +124,7 @@ export function getItemFromDB(dbName, storeName, primaryKeyValue) {
 
 /**
  * Get Items from DB within an index range.
- * @todo 
+ * @todo
  * @async
  * @param dbName - DB's name.
  * @param storeName - Store's name.
@@ -147,13 +147,13 @@ export function getItemsInRangeFromDB(dbName, storeName, rangeOb) {
 }
 
 /**
- * @todo 
+ * @todo
  * @param {string} dbName
  * @returns {Promise<FormatResult>} Resolve FormatResult['SUCC'] if deleted successfully, otherwise resolve FormatResult with failed msg.
  */
 export function deleteDB(dbName) {
   return new Promise((resolve, reject) => {
-    
+
   })
 }
 
@@ -180,7 +180,7 @@ export class CustomDB {
     this.dbVersion = dbConfig.dbVersion || 1
   }
   /**
-   * @todo 
+   * @todo
    * @async
    * @param {Object[]} itemList - Items to be added into the CustomDB.
    * @param {string} itemList[].storeName - Store's name.
@@ -218,13 +218,13 @@ export class CustomDB {
           } else {
             resolve(FormatResult[''])
           }
-         })
+        })
     })
   }
 
   /**
    * Get the item which primaryKey equals primaryKeyValue.
-   * @todo 
+   * @todo
    * @async
    * @param {string} storeName - Store's name.
    * @param {string} primaryKeyValue - Value of the item's primarykey.
@@ -238,7 +238,7 @@ export class CustomDB {
 
   /**
    * Get Items from DB within an index range.
-   * @todo 
+   * @todo
    * @async
    * @param storeName - Store's name.
    * @param {Object} [rangeOb] - Index range. All items in the store will be resolved if rangeOb is undefined.
