@@ -73,7 +73,12 @@ function proxyMethods(ProxyClass, targetProp, Constructor, properties) {
   })
 }
 
-function proxyCursorRequestMethods(ProxyClass, targetProp, Constructor, properties) {
+function proxyCursorRequestMethods(
+  ProxyClass,
+  targetProp,
+  Constructor,
+  properties
+) {
   properties.forEach(function(prop) {
     if (!(prop in Constructor.prototype)) return
     ProxyClass.prototype[prop] = function() {
@@ -141,12 +146,7 @@ DB.prototype.transaction = function() {
 }
 
 function methodsExecuteIfEnvValid() {
-  proxyProperties(Index, '_index', [
-    'name',
-    'keyPath',
-    'multiEntry',
-    'unique'
-  ])
+  proxyProperties(Index, '_index', ['name', 'keyPath', 'multiEntry', 'unique'])
   proxyRequestMethods(Index, '_index', IDBIndex, [
     'get',
     'getKey',
@@ -164,10 +164,7 @@ function methodsExecuteIfEnvValid() {
     'primaryKey',
     'value'
   ])
-  proxyRequestMethods(Cursor, '_cursor', IDBCursor, [
-    'update',
-    'delete'
-  ])
+  proxyRequestMethods(Cursor, '_cursor', IDBCursor, ['update', 'delete'])
   proxyProperties(ObjectStore, '_store', [
     'name',
     'keyPath',
@@ -189,35 +186,15 @@ function methodsExecuteIfEnvValid() {
     'openCursor',
     'openKeyCursor'
   ])
-  proxyMethods(ObjectStore, '_store', IDBObjectStore, [
-    'deleteIndex'
-  ])
-  proxyProperties(Transaction, '_tx', [
-    'objectStoreNames',
-    'mode'
-  ])
-  proxyMethods(Transaction, '_tx', IDBTransaction, [
-    'abort'
-  ])
-  proxyProperties(UpgradeDB, '_db', [
-    'name',
-    'version',
-    'objectStoreNames'
-  ])
-  proxyMethods(UpgradeDB, '_db', IDBDatabase, [
-    'deleteObjectStore',
-    'close'
-  ])
-  proxyProperties(DB, '_db', [
-    'name',
-    'version',
-    'objectStoreNames'
-  ])
-  proxyMethods(DB, '_db', IDBDatabase, [
-    'close'
-  ]);
+  proxyMethods(ObjectStore, '_store', IDBObjectStore, ['deleteIndex'])
+  proxyProperties(Transaction, '_tx', ['objectStoreNames', 'mode'])
+  proxyMethods(Transaction, '_tx', IDBTransaction, ['abort'])
+  proxyProperties(UpgradeDB, '_db', ['name', 'version', 'objectStoreNames'])
+  proxyMethods(UpgradeDB, '_db', IDBDatabase, ['deleteObjectStore', 'close'])
+  proxyProperties(DB, '_db', ['name', 'version', 'objectStoreNames'])
+  proxyMethods(DB, '_db', IDBDatabase, ['close'])
   // proxy 'next' methods
-  ['advance', 'continue', 'continuePrimaryKey'].forEach(function(methodName) {
+  ;['advance', 'continue', 'continuePrimaryKey'].forEach(function(methodName) {
     if (!(methodName in IDBCursor.prototype)) return
     Cursor.prototype[methodName] = function() {
       var cursor = this
@@ -230,11 +207,11 @@ function methodsExecuteIfEnvValid() {
         })
       })
     }
-  });
+  })
   // Add cursor iterators
   // TODO: remove this once browsers do the right thing with promises
-  ['openCursor', 'openKeyCursor'].forEach(function(funcName) {
-    [ObjectStore, Index].forEach(function(Constructor) {
+  ;['openCursor', 'openKeyCursor'].forEach(function(funcName) {
+    ;[ObjectStore, Index].forEach(function(Constructor) {
       // Don't create iterateKeyCursor if openKeyCursor doesn't exist.
       if (!(funcName in Constructor.prototype)) return
 
@@ -242,15 +219,18 @@ function methodsExecuteIfEnvValid() {
         var args = toArray(arguments)
         var callback = args[args.length - 1]
         var nativeObject = this._store || this._index
-        var request = nativeObject[funcName].apply(nativeObject, args.slice(0, -1))
+        var request = nativeObject[funcName].apply(
+          nativeObject,
+          args.slice(0, -1)
+        )
         request.onsuccess = function() {
           callback(request.result)
         }
       }
     })
-  });
+  })
   // polyfill getAll
-  [Index, ObjectStore].forEach(function(Constructor) {
+  ;[Index, ObjectStore].forEach(function(Constructor) {
     if (Constructor.prototype.getAll) return
     Constructor.prototype.getAll = function(query, count) {
       var instance = this
@@ -280,13 +260,23 @@ export default {
     if (dbEnvChecker.getResult().code !== FormatResult['SUCC'].code) {
       return Promise.reject(dbEnvChecker.getResult())
     } else {
-      methodsExecuteIfEnvValid()
+      try {
+        methodsExecuteIfEnvValid()
+      } catch (e) {
+        alert(e)
+      }
       var p = promisifyRequestCall(indexedDB, 'open', [name, version])
       var request = p.request
       if (request) {
         request.onupgradeneeded = function(event) {
           if (upgradeCallback) {
-            upgradeCallback(new UpgradeDB(request.result, event.oldVersion, request.transaction))
+            upgradeCallback(
+              new UpgradeDB(
+                request.result,
+                event.oldVersion,
+                request.transaction
+              )
+            )
           }
         }
       }

@@ -1,6 +1,5 @@
 import dbWrapper from './db_wrapper'
 import dbEnvChecker from './lib/db_env_checker'
-import idb from '../build/js/lib/idb'
 import FormatResult from './lib/formatted_result'
 const DB_DOCS_URL = 'https://sylvia1106.github.io/idb-managed/'
 const SINGLE_DATA_DB_NAME = 'SINGLE_DATA_DB'
@@ -94,9 +93,18 @@ export function idbIsSupported() {
  * @returns {Promise<FormatResult>} Resolve FormatResult['SUCC'] if set successfully, otherwise resolve FormatResult with failed msg.
  */
 export function setKV(key, value, expireTime) {
-  return new Promise((resolve, reject) => {
-    idb.create
-  })
+  let item = {}
+  item[SINGLE_DATA_PRIMARY_KEYNAME] = key
+  item[SINGLE_DATA_VALUENAME] = value
+  return dbWrapper.addItems(SINGLE_DATA_DB_NAME, [{
+    tableName: SINGLE_DATA_STORE_NAME,
+    primaryKey: SINGLE_DATA_PRIMARY_KEYNAME,
+    indexList: []
+  }], 1, [{
+    storeName: SINGLE_DATA_STORE_NAME,
+    item: item,
+    expireTime: expireTime
+  }])
 }
 
 /**
@@ -137,24 +145,21 @@ export function getItemFromDB(dbName, storeName, primaryKeyValue) {
  * @returns {Promise<FormatResult>} Resolve FormatResult['SUCC'] with itemArray in data, resolve FormatResult with failed mag if anything wrong happened.
  */
 export function getItemsInRangeFromDB(dbName, storeName, rangeOb) {
-  return new Promise((resolve, reject) => {
-    try {
-      _getInRangeParamChecker(rangeOb)
-    } catch (errorMsg) {
-      resolve(FormatResult['PARAM_INVALID'].setData({desc: `Get items in range from DB failed: ${errorMsg}.`}))
-    }
-  })
+  try {
+    _getInRangeParamChecker(rangeOb)
+  } catch (errorMsg) {
+    return Promise.resolve(FormatResult['PARAM_INVALID'].setData({desc: `Get items in range from DB failed: ${errorMsg}.`}))
+  }
 }
 
 /**
  * @todo
+ * @async
  * @param {string} dbName
  * @returns {Promise<FormatResult>} Resolve FormatResult['SUCC'] if deleted successfully, otherwise resolve FormatResult with failed msg.
  */
 export function deleteDB(dbName) {
-  return new Promise((resolve, reject) => {
-
-  })
+  return dbWrapper.deleteDB(dbName)
 }
 
 export class CustomDB {
@@ -189,37 +194,18 @@ export class CustomDB {
    * @returns {Promise<FormatResult>} Resolve FormatResult['SUCC'] if add successfully, otherwise resolve FormatResult with failed msg.
    */
   addItems(itemList) {
-    return new Promise((resolve) => {
-      try {
-        _customDBAddItemsParamChecker(itemList)
-      } catch (errorMsg) {
-        resolve(FormatResult['PARAM_INVALID'].setData({desc: `Add items failed: ${errorMsg}.`}))
+    try {
+      _customDBAddItemsParamChecker(itemList)
+    } catch (errorMsg) {
+      return Promise.resolve(FormatResult['PARAM_INVALID'].setData({desc: `Add items failed: ${errorMsg}.`}))
+    }
+    // Set default expireTime
+    itemList.forEach((item) => {
+      if (item.expireTime === undefined || item.expireTime === null) {
+        item.expireTime = Date.now() + DEFAULT_EXPIRE_MILISECONDS
       }
-      // Set default expireTime
-      itemList.forEach((item) => {
-        if (item.expireTime === undefined) {
-          item.expireTime = Date.now() + DEFAULT_EXPIRE_MILISECONDS
-        }
-      })
-      dbWrapper.openDB(this.dbName, this.storeList, this.dbVersion)
-        .then((db) => {
-          return dbWrapper.deleteExpiredItems(db, itemList.map(item => item.storeName))
-        })
-        .then((db) => {
-          return dbWrapper.addItems(db, itemList)
-        })
-        .then((db) => {
-          resolve(FormatResult['SUCC'])
-          db.close()
-        })
-        .catch((formatResult) => {
-          if (formatResult.code && formatResult.msg) {
-            resolve(formatResult)
-          } else {
-            resolve(FormatResult[''])
-          }
-        })
     })
+    return dbWrapper.addItems(this.dbName, this.storeList, this.dbVersion, itemList)
   }
 
   /**
@@ -231,9 +217,6 @@ export class CustomDB {
    * @returns {Promise<FormatResult>} Resolve FormatResult['SUCC'] with item in data, resolve FormatResult with failed mag if anything wrong happened.
    */
   getItem(storeName, primaryKeyValue) {
-    return new Promise((resolve) => {
-
-    })
   }
 
   /**

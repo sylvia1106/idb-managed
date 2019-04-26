@@ -22,7 +22,6 @@ function __deduplicateList(list) {
   return deduplicatedList
 }
 /**
- * @todo
  * @param upgradeDB - The upgraded DB when upgradeneeded event fired by idb.open.
  * @param {Object[]} storeList - Stores need to be created when the DB is opening.
  */
@@ -67,6 +66,7 @@ function _upgradeIDBManagerDB(upgradeDB) {
 }
 
 /**
+ * Get DB info from manager.
  * @async
  * @param dbName
  * @returns {Promise<FormatResult>} Resolve FormatResult['SUCC'] with dbInfo in data if this DB is registered in manager; resolve FormatResult with failed msg if DB does not exist or error happens.
@@ -78,13 +78,13 @@ function _getDBInfo(dbName) {
     .then((db) => {
       return _getItemFromStore(db, IDB_MANAGER_DB_STORE_NAME, dbName)
         .then((formatResult) => {
-          db.close() // Close db after using.
+          db.close() // Close manager db after using.
           if (formatResult.code === FormatResult['SUCC'].code) {
             return FormatResult['SUCC'].setData({dbInfo: formatResult.data.itemValue})
           } else if (formatResult.code === FormatResult['ITEM_NOT_FOUND'].code || formatResult.code === FormatResult['ITEM_EXPIRED'].code) {
             return FormatResult['DB_NOT_FOUND']
           } else {
-            return FormatResult['UNEXPECTED_ERR']
+            return formatResult
           }
         })
         .catch(e => {
@@ -99,6 +99,7 @@ function _getDBInfo(dbName) {
 
 /**
  * Add this DB item into manager.
+ * @async
  * @param dbName - Name of the DB to be added.
  * @param storeList - StoreList of the DB, will be updated if needed.
  * @param dbVersion - Version of the DB, will be updated if it is higher than the present version exists in manager.
@@ -335,8 +336,48 @@ function openDBWithoutCreation(dbName) {
     })
 }
 
-function addItems(db, itemList) {
-
+/**
+ * Add items into db.
+ * @async
+ * @param {String} dbName
+ * @param {Object[]} storeList - The involved stores.
+ * @param {non-negative integer} dbVersion - The opening operation need a explicit updated version if new store or new index is involved.
+ * @param {Object[]} itemList - Items to be added.
+ */
+function addItems(dbName, storeList, dbVersion, itemList) {
+  function _thenChaining(succCb) {
+    return (formatResult) => {
+      if (formatResult.code === FormatResult['SUCC'].code) {
+        return succCb && succCb(formatResult)
+      } else {
+        throw formatResult
+      }
+    }
+  }
+  let db
+  return Promise.resolve()
+    .then(() => {
+      return openDBWithCreation(dbName, storeList, dbVersion)
+        .then(_thenChaining((formatResult) => {
+          db = formatResult.data.db
+        }))
+    })
+    .then(() => {
+      return _putItemsToStores(db, itemList)
+        .then(_thenChaining())
+    })
+    .then(() => {
+      db.close() // Close db finally.
+      return FormatResult['SUCC']
+    })
+    .catch((e) => {
+      db && db.close()
+      if (e.isResultFormat) {
+        return e
+      } else {
+        return FormatResult['ADD_ITEMS_FAIL'].setData({desc:'Add Items failed.', err: e})
+      }
+    })
 }
 
 function getItem() {
