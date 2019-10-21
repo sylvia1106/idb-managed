@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+        <title>Demo for idb-managed</title>
+    </head>
+    <body>
+        <button onclick="addItems()">addItems</button>
+        <script src="./idb-managed.js"></script>
+        <script>
+            console.log(IDBM.idbIsSupported());
+            const db = new IDBM.CustomDB({
+                dbName: 'DEMO_DB',
+                tables: {
+                    table1: {tableName: 'table1', primaryKey: 'key1', indexList: [], itemDuration: 3000},
+                    table2: {tableName: 'table2', primaryKey: 'key2', indexList: []}
+                },
+                dbVersion: 1,
+                itemDuration: 5000
+            })
+            function addItems() {
+                db.addItems([
+                    {tableName: 'table1', item: {'key1': 'heihei', 'value1': 'haha'}, itemDuration: 1000},
+                    {tableName: 'table2', item: {'key2': 'xiuxiu', 'value2': 'lala'}}
+                ])
+                .then(ob => {
+                    console.log(ob);
+                })
+                .catch((e) => {
+                    console.log(e);
+                })
+            }
+        </script>
+    </body>
+</html>

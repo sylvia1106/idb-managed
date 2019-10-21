@@ -1,0 +1,9 @@
+{
+    "compilerOptions": {
+        "outDir": "build",
+        "target": "es5",
+        "module": "commonjs",
+        "strict": true,
+        "lib": ["es6", "dom"]
+    }
+}
