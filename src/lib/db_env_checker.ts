@@ -27,7 +27,7 @@ export default {
             });
             return FormattedResult['SUCC'];
         } catch (resultOb) {
-            return resultOb
+            return resultOb;
         }
     }
 };

@@ -1,9 +1,7 @@
 import DBEnvChecker from './lib/db_env_checker';
-import FormattedResult, { ResultFormatter } from './lib/formatted_result';
+import FormattedResult from './lib/formatted_result';
 import DBWrapper from './db_wrapper';
-let debug: boolean = true;
 const DEFAULT_DB_VERSION: number = 1;
-const DB_DOCS_URL = 'https://sylvia1106.github.io/idb-managed/';
 const ParamCheckerEnum = {
     NonNegativeInteger: {
         rule: _isNonNegativeInteger,
@@ -35,11 +33,6 @@ const ParamCheckerEnum = {
     }
 };
 const OPTIONAL = true;
-function _debugger(fnName: string, result: ResultFormatter | Error): void {
-    if (debug) {
-        console.log(fnName, result);
-    }
-}
 function _isNonNegativeInteger(x: any) {
     return !isNaN(x) && x >= 0;
 }
@@ -132,7 +125,7 @@ function _customDBConfigChecker(dbConfig: DBConfig): void {
 }
 
 function _customDBAddItemsParamChecker(
-    items: ItemInTable[],
+    items: ItemConfig[],
     tableListInDB: TableConfig[]
 ): void {
     const tableNamesInDB = tableListInDB.map(table => table.tableName);
@@ -157,9 +150,37 @@ function _customDBAddItemsParamChecker(
     // TODO item不包含自定义的primaryKey需要报错
 }
 
+function indexRangeParamChecker(indexRange?: IndexRange): void {
+    _paramChecker(
+        indexRange,
+        ParamCheckerEnum.NotNullObject,
+        'indexRange',
+        OPTIONAL
+    );
+    if (indexRange) {
+        _paramChecker(
+            indexRange.indexName,
+            ParamCheckerEnum.String,
+            "indexRange's indexName",
+            !OPTIONAL
+        );
+        _paramChecker(
+            indexRange.lowerExclusive,
+            ParamCheckerEnum.Boolean,
+            "indexRange's lowerExclusive",
+            OPTIONAL
+        );
+        _paramChecker(
+            indexRange.upperExclusive,
+            ParamCheckerEnum.Boolean,
+            "indexRange's upperExclusive",
+            OPTIONAL
+        );
+    }
+}
+
 export function idbIsSupported(): boolean {
     let supportResult = DBEnvChecker.getResult();
-    _debugger('idbIsSupported', supportResult);
     return supportResult !== FormattedResult['DB_NOT_SUPPORT'];
 }
 export class CustomDB {
@@ -170,9 +191,9 @@ export class CustomDB {
     constructor(dbConfig: DBConfig) {
         try {
             _customDBConfigChecker(dbConfig);
-        } catch (errorMsg) {
+        } catch (errMsg) {
             throw FormattedResult['PARAM_INVALID'].setData({
-                desc: `${errorMsg}`
+                desc: `${errMsg}`
             });
         }
         this.name = dbConfig.dbName;
@@ -188,8 +209,12 @@ export class CustomDB {
         });
         this.itemDuration = dbConfig.itemDuration;
     }
-    async addItems(items: ItemInTable[]) {
-        const itemDurationOverrider = (ofDB: number | undefined, ofTable: number | undefined, ofItem: number | undefined) => {
+    async addItems(items: ItemConfig[]) {
+        const itemDurationOverrider = (
+            ofDB: number | undefined,
+            ofTable: number | undefined,
+            ofItem: number | undefined
+        ) => {
             if (ofItem !== undefined) {
                 return ofItem;
             } else if (ofTable !== undefined) {
@@ -197,45 +222,94 @@ export class CustomDB {
             } else {
                 return ofDB;
             }
-        }
+        };
         try {
-            _customDBAddItemsParamChecker(items, this.tableList);
-        } catch (errorMsg) {
-            throw FormattedResult['PARAM_INVALID'].setData({
-                desc: `${errorMsg}`
+            try {
+                _customDBAddItemsParamChecker(items, this.tableList);
+            } catch (errMsg) {
+                throw FormattedResult['PARAM_INVALID'].setData({
+                    desc: `${errMsg}`
+                });
+            }
+            // Set backup itemDuration to each item
+            const itemsWithDuration = items.map(item => {
+                const theTable: TableConfig = this.tableList.find(
+                    table => table.tableName === item.tableName
+                ) as TableConfig;
+                return {
+                    ...{
+                        itemDuration: itemDurationOverrider(
+                            this.itemDuration,
+                            theTable.itemDuration,
+                            item.itemDuration
+                        )
+                    },
+                    ...item
+                };
             });
-        }
-        // Set itemDuration to each item
-        const itemsWithDuration = items.map(item => {
-            const theTable: TableConfig = this.tableList.find(
-                table => table.tableName === item.tableName
-            ) as TableConfig;
-            return {
-                ...{ itemDuration: itemDurationOverrider(this.itemDuration, theTable.itemDuration, item.itemDuration) },
-                ...item
-            };
-        });
-        try {
             await DBWrapper.addItems(this, itemsWithDuration);
             return FormattedResult['SUCC'];
         } catch (e) {
-            _debugger('addItems', e);
             throw FormattedResult['ADD_ITEMS_FAIL'].setData({
                 desc: `${e}`
             });
         }
     }
-    async function getItem(tableName: string, primaryKeyValue: any) {
+    async getItem(tableName: string, primaryKeyValue: any) {
         try {
-            return await DBWrapper.getItem(this, tableName, primaryKeyValue)
-        } catch (errorMsg) {
-
+            return await DBWrapper.getItem(
+                this.name,
+                tableName,
+                primaryKeyValue
+            );
+        } catch (e) {
+            throw FormattedResult['GET_ITEM_FAIL'].setData({
+                desc: `${e}`
+            });
         }
     }
 
-    async function getItemsInRange(tableName: string, )
+    async getItemsInRange(tableName: string, indexRange?: IndexRange) {
+        try {
+            try {
+                indexRangeParamChecker(indexRange);
+            } catch (errMsg) {
+                throw FormattedResult['PARAM_INVALID'].setData({
+                    desc: `${errMsg}`
+                });
+            }
+            return await DBWrapper.getItemsInRange(
+                this.name,
+                tableName,
+                indexRange
+            );
+        } catch (e) {
+            throw FormattedResult['GET_IN_RANGE_FAIL'].setData({
+                desc: `${e}`
+            });
+        }
+    }
+}
+
+export async function deleteDB(dbName: string) {
+    try {
+        _paramChecker(dbName, ParamCheckerEnum.String, 'dbName', !OPTIONAL);
+    } catch (errMsg) {
+        throw FormattedResult['PARAM_INVALID'].setData({
+            desc: `${errMsg}`
+        });
+    }
+    try {
+        await DBWrapper.deleteDB(dbName);
+        return FormattedResult['SUCC'];
+    } catch (e) {
+        throw FormattedResult['DELETE_DB_FAIL'].setData({
+            desc: `${e}`
+        });
+    }
 }
 export default {
     idbIsSupported,
-    CustomDB
+    CustomDB,
+    deleteDB
 };

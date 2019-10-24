@@ -8,29 +8,101 @@
     </head>
     <body>
         <button onclick="addItems()">addItems</button>
+        <button onclick="getItem()">getItem</button>
+        <button onclick="getItems()">getItems</button>
+        <button onclick="deleteDB()">deleteDB</button>
         <script src="./idb-managed.js"></script>
         <script>
             console.log(IDBM.idbIsSupported());
             const db = new IDBM.CustomDB({
                 dbName: 'DEMO_DB',
                 tables: {
-                    table1: {tableName: 'table1', primaryKey: 'key1', indexList: [], itemDuration: 3000},
-                    table2: {tableName: 'table2', primaryKey: 'key2', indexList: []}
+                    table1: {
+                        tableName: 'table1',
+                        primaryKey: 'key1',
+                        // indexList: [],
+                        indexList: [{
+                            indexName: 'value1',
+                            unique: true
+                        }],
+                        itemDuration: 3000
+                    },
+                    table2: {
+                        tableName: 'table2',
+                        primaryKey: 'key2',
+                        indexList: []
+                    },
+                    table3: {
+                        tableName: 'table3',
+                        indexList: []
+                    }
                 },
-                dbVersion: 1,
+                dbVersion: 2,
                 itemDuration: 5000
-            })
+            });
             function addItems() {
-                db.addItems([
-                    {tableName: 'table1', item: {'key1': 'heihei', 'value1': 'haha'}, itemDuration: 1000},
-                    {tableName: 'table2', item: {'key2': 'xiuxiu', 'value2': 'lala'}}
+                return db.addItems([
+                    {
+                        tableName: 'table1',
+                        item: { key1: 'heihei', value1: '1' },
+                        itemDuration: 1000 * 3600
+                    },
+                    {
+                        tableName: 'table1',
+                        item: { key1: 'haha', value1: '2' },
+                        itemDuration: 1000 * 3600
+                    },
+                    {
+                        tableName: 'table2',
+                        item: { key2: 'xiuxiu', value2: 'lala' }
+                    }
                 ])
-                .then(ob => {
-                    console.log(ob);
-                })
-                .catch((e) => {
-                    console.log(e);
-                })
+                    .then(ob => {
+                        console.log(ob);
+                    })
+                    .catch(e => {
+                        console.log(e);
+                    });
+            }
+            function getItem() {
+                addItems()
+                    .then(() => {
+                        db.getItem('table1', 'heihei')
+                            .then(ob => {
+                                console.log(ob);
+                            })
+                            .catch(e => {
+                                console.log(e);
+                            });
+                    })
+            }
+            function getItems() {
+                addItems()
+                    .then(() => {
+                        db.getItemsInRange('table1', {
+                            indexName: 'value1',
+                            // onlyIndex: 'haha',
+                            // lowerIndex?: any,
+                            upperIndex: '2',
+                            lowerExclusive: true,
+                            upperExclusive: true,
+                        })
+                            .then(ob => {
+                                console.log(ob);
+                            })
+                            .catch(e => {
+                                console.log(e);
+                            });
+                    })
+            }
+            function deleteDB() {
+                IDBM.deleteDB('DEMO_DB')
+                    .then(ob => {
+                        console.log(ob);
+                    })
+                    .catch(e => {
+                        console.log(e);
+                    });
             }
         </script>
     </body>

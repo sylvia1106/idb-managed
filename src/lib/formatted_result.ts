@@ -13,6 +13,9 @@ export class ResultFormatter {
         this.data = { ...this.data, ...supplyment };
         return this;
     }
+    toString() {
+        return `FormattedResult{code: ${this.code}, msg: ${this.msg}, data: ${JSON.stringify(this.data)}}`
+    }
 }
 
 export default {
