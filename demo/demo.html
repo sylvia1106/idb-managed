@@ -11,6 +11,7 @@
         <button onclick="getItem()">getItem</button>
         <button onclick="getItems()">getItems</button>
         <button onclick="deleteDB()">deleteDB</button>
+        <button onclick="deleteItems()">deleteItems</button>
         <script src="./idb-managed.js"></script>
         <script>
             console.log(IDBM.idbIsSupported());
@@ -44,8 +45,8 @@
                 return db.addItems([
                     {
                         tableName: 'table1',
-                        item: { key1: 'heihei', value1: '1' },
-                        itemDuration: 1000 * 3600
+                        item: { key1: 'xixi', value1: '1' },
+                        itemDuration: 1000
                     },
                     {
                         tableName: 'table1',
@@ -55,6 +56,11 @@
                     {
                         tableName: 'table2',
                         item: { key2: 'xiuxiu', value2: 'lala' }
+                    },
+                    {
+                        tableName: 'table3',
+                        item: { value: '2'},
+                        itemDuration: 1000
                     }
                 ])
                     .then(ob => {
@@ -94,6 +100,31 @@
                                 console.log(e);
                             });
                     })
+            }
+            function deleteItems() {
+                // addItems()
+                //     .then(() => {
+                        db.deleteItems([
+                            {
+                                tableName: 'table1',
+                                indexRange: {
+                                    // FIXME
+                                }
+                            },
+                            {
+                                tableName: 'table3',
+                                indexRange: {
+                                    // FIXME
+                                }
+                            }
+                        ])
+                        .then(ob => {
+                            console.log(ob);
+                        })
+                        .catch(e => {
+                            console.log(e);
+                        });
+                    // })
             }
             function deleteDB() {
                 IDBM.deleteDB('DEMO_DB')

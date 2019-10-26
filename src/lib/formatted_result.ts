@@ -28,6 +28,7 @@ export default {
     ADD_ITEMS_FAIL: new ResultFormatter(204, 'Add items failed'),
     GET_ITEM_FAIL: new ResultFormatter(205, 'Get item failed'),
     GET_IN_RANGE_FAIL: new ResultFormatter(206, 'Get items in range failed'),
+    DELETE_ITEMS_FAIL: new ResultFormatter(207, 'Delete items failed'),
     DELETE_DB_FAIL: new ResultFormatter(208, 'Delete DB failed'),
     UNEXPECTED_ERR: new ResultFormatter(666, 'Some unexpected error happens')
 };

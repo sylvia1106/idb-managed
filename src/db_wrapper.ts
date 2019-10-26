@@ -1,10 +1,11 @@
 /**
- * @file Wrap idb apis for idb-managed
+ * @file Wrap idb APIs for idb-managed
  */
 import { CustomDB } from './index';
 import { openDB as IDBOpenDB, deleteDB as IDBDeleteDB } from 'idb';
 import { deduplicateList } from './lib/utils';
 import FormattedResult from './lib/formatted_result';
+const IDB_MANAGER_VERSION = 1;
 const IDB_MANAGER_DB_NAME = 'IDB_MANAGER_DB';
 const IDB_MANAGER_DB_TABLE_NAME = 'IDB_MANAGER_STORE';
 const IDB_MANAGER_DB_TABLE_INDEX_NAME = 'dbName';
@@ -66,31 +67,39 @@ async function registerDBInManager(dbInfo: DB) {
         dbManager as any,
         IDB_MANAGER_DB_TABLE_NAME,
         dbInfo.name
-    )) as any) as ItemInDBManager
+    )) as any) as ItemInDBManager;
     if (dbAlreadyInManager && dbInfo.version <= dbAlreadyInManager.version) {
         // No need to register
         return;
     } else {
         // update db in manager
-        const addDBTrans = dbManager.transaction(IDB_MANAGER_DB_TABLE_NAME, 'readwrite');
-        const table = addDBTrans.objectStore(IDB_MANAGER_DB_TABLE_NAME)
+        const addDBTrans = dbManager.transaction(
+            IDB_MANAGER_DB_TABLE_NAME,
+            'readwrite'
+        );
+        const table = addDBTrans.objectStore(IDB_MANAGER_DB_TABLE_NAME);
         const dbItem: ItemInDBManager = {
             dbName: dbInfo.name,
             tableList: dbInfo.tableList,
             version: dbInfo.version
-        }
-        table.put(itemWrapper({
-            item: dbItem,
-            tableName: IDB_MANAGER_DB_TABLE_NAME
-        }));
+        };
+        table.put(
+            itemWrapper({
+                item: dbItem,
+                tableName: IDB_MANAGER_DB_TABLE_NAME
+            })
+        );
         await addDBTrans.done;
-        dbManager.close();    
+        dbManager.close();
     }
 }
 
 async function unregisterDBInManager(dbName: string) {
     const dbManager = await openDBManager();
-    const deleteTrans = dbManager.transaction(IDB_MANAGER_DB_TABLE_NAME, 'readwrite');
+    const deleteTrans = dbManager.transaction(
+        IDB_MANAGER_DB_TABLE_NAME,
+        'readwrite'
+    );
     const table = deleteTrans.objectStore(IDB_MANAGER_DB_TABLE_NAME);
     table.delete(dbName);
     await deleteTrans.done;
@@ -101,14 +110,18 @@ async function createDB(dbInfo: DB) {
     await registerDBInManager(dbInfo);
     const db = await IDBOpenDB(dbInfo.name, dbInfo.version as number, {
         upgrade(upgradeDB, oldVersion, newVersion, transaction) {
-            upgradeDBWithTableList(upgradeDB as any, dbInfo.tableList, transaction);
+            upgradeDBWithTableList(
+                upgradeDB as any,
+                dbInfo.tableList,
+                transaction
+            );
         }
     });
     return db;
 }
 
 async function openDBManager() {
-    return await IDBOpenDB(IDB_MANAGER_DB_NAME, 1, {
+    return await IDBOpenDB(IDB_MANAGER_DB_NAME, IDB_MANAGER_VERSION, {
         // In case DB Manager has not been created.
         upgrade(upgradeDB) {
             upgradeDBManager(upgradeDB as any);
@@ -125,16 +138,20 @@ async function openDB(dbName: string) {
     )) as any) as ItemInDBManager | null;
     dbManager.close();
     if (dbAlreadyInManager) {
-        const db = await IDBOpenDB(dbAlreadyInManager.dbName, dbAlreadyInManager.version as number, {
-            // In case this DB has not been created.
-            upgrade(upgradeDB, oldVersion, newVersion, transaction) {
-                upgradeDBWithTableList(
-                    upgradeDB as any,
-                    dbAlreadyInManager.tableList || [],
-                    transaction
-                );
+        const db = await IDBOpenDB(
+            dbAlreadyInManager.dbName,
+            dbAlreadyInManager.version as number,
+            {
+                // In case this DB has not been created.
+                upgrade(upgradeDB, oldVersion, newVersion, transaction) {
+                    upgradeDBWithTableList(
+                        upgradeDB as any,
+                        dbAlreadyInManager.tableList || [],
+                        transaction
+                    );
+                }
             }
-        });
+        );
         return db;
     } else {
         throw FormattedResult['DB_NOT_FOUND'];
@@ -172,11 +189,7 @@ function upgradeDBWithTableList(
     try {
         tableList.forEach(tableConfig => {
             // If table already exists.
-            if (
-                upgradeDB.objectStoreNames.contains(
-                    tableConfig.tableName
-                )
-            ) {
+            if (upgradeDB.objectStoreNames.contains(tableConfig.tableName)) {
                 const currentTable = transaction.objectStore(
                     tableConfig.tableName
                 );
@@ -242,16 +255,74 @@ function upgradeDBWithTableList(
     }
 }
 
+async function deleteExpiredItemsFromTable(
+    db: any,
+    tableNameList: string[]
+) {
+    tableNameList.forEach(tableName => {
+        if (!db.objectStoreNames.contains(tableName)) {
+            throw FormattedResult['TABLE_NOT_FOUND'];
+        }
+    })
+    const deleteItemsTrans = db.transaction(tableNameList, 'readwrite');
+    try {
+        tableNameList.forEach(async tableName => {
+            const table = deleteItemsTrans.objectStore(tableName);
+            let index = table.index(EXPIRETIME_KEYNAME);
+            if (tableName === 'table3') {
+                index = table.index('a').catch((err: Error) => {
+                    console.log('index rror' + err)
+                })
+            }
+            let cursor = (await index.openCursor(
+                indexRange2DBKey({
+                    indexName: EXPIRETIME_KEYNAME,
+                    lowerIndex: 0,
+                    upperIndex: Date.now(),
+                    lowerExclusive: false,
+                    upperExclusive: false
+                })
+            )) as any;
+            while (cursor) {
+                await table.delete(cursor.primaryKey);
+                cursor = await cursor.continue();
+            }
+        });
+    } catch (e) {
+        console.log('trans abort catch')
+        try {
+            deleteItemsTrans.abort();
+        } catch (e) {
+            console.log('trans abort failed!');
+            // Do nothing if trans aborted failed
+        }
+        // throw FormattedResult['DELETE_ITEMS_FAIL'].setData({ desc: e });
+    }
+    await deleteItemsTrans.done;
+}
+
 export async function addItems(customDB: CustomDB, items: ItemConfig[]) {
     const db = await createDB(customDB);
-    const dedupTableNameList = deduplicateList(
+    const dedupTableNameList: string[] = deduplicateList(
         items.map(item => item.tableName)
     );
+    // FIXME
+    // await deleteExpiredItemsFromTable(db, dedupTableNameList);
     const addItemsTrans = db.transaction(dedupTableNameList, 'readwrite');
-    items.forEach(item => {
-        const table = addItemsTrans.objectStore(item.tableName);
-        table.put(itemWrapper(item));
-    });
+    try {
+        items.forEach(item => {
+            const table = addItemsTrans.objectStore(item.tableName);
+            table.put(itemWrapper(item));
+        });
+    } catch (e) {
+        // Make sure addItems operation is atomic
+        try {
+            addItemsTrans.abort();
+        } catch (e) {
+            console.log('trans abort failed!');
+            // Do nothing if trans aborted failed
+        }
+    }
     await addItemsTrans.done;
     db.close();
 }
@@ -306,9 +377,25 @@ export async function deleteDB(dbName: string) {
     await IDBDeleteDB(dbName);
 }
 
+export async function deleteItems(
+    dbName: string,
+    itemsToDelete: {
+        tableName: string;
+        indexRange: IndexRange;
+    }[]
+) {
+    const db = await openDB(dbName);
+    const dedupTableNameList: string[] = deduplicateList(
+        itemsToDelete.map(item => item.tableName)
+    );
+    // FIXME
+    await deleteExpiredItemsFromTable(db, dedupTableNameList);
+}
+
 export default {
     addItems,
     getItem,
     getItemsInRange,
-    deleteDB
+    deleteDB,
+    deleteItems
 };
