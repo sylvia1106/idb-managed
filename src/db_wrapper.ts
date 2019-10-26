@@ -255,25 +255,17 @@ function upgradeDBWithTableList(
     }
 }
 
-async function deleteExpiredItemsFromTable(
-    db: any,
-    tableNameList: string[]
-) {
+async function deleteExpiredItemsFromTable(db: any, tableNameList: string[]) {
     tableNameList.forEach(tableName => {
         if (!db.objectStoreNames.contains(tableName)) {
             throw FormattedResult['TABLE_NOT_FOUND'];
         }
-    })
+    });
     const deleteItemsTrans = db.transaction(tableNameList, 'readwrite');
     try {
-        tableNameList.forEach(async tableName => {
+        for (let tableName of tableNameList) {
             const table = deleteItemsTrans.objectStore(tableName);
             let index = table.index(EXPIRETIME_KEYNAME);
-            if (tableName === 'table3') {
-                index = table.index('a').catch((err: Error) => {
-                    console.log('index rror' + err)
-                })
-            }
             let cursor = (await index.openCursor(
                 indexRange2DBKey({
                     indexName: EXPIRETIME_KEYNAME,
@@ -284,21 +276,27 @@ async function deleteExpiredItemsFromTable(
                 })
             )) as any;
             while (cursor) {
-                await table.delete(cursor.primaryKey);
+                table.delete(cursor.primaryKey);
                 cursor = await cursor.continue();
             }
-        });
-    } catch (e) {
-        console.log('trans abort catch')
+        }
+        await deleteItemsTrans.done;
+        db.close();
+    } catch (errMsg) {
+        db.close();
+        // Abort transaction manually to keep deleteItems operation atomic.
         try {
             deleteItemsTrans.abort();
         } catch (e) {
-            console.log('trans abort failed!');
-            // Do nothing if trans aborted failed
+            // Do nothing if transaction abort failed.
         }
-        // throw FormattedResult['DELETE_ITEMS_FAIL'].setData({ desc: e });
+        try {
+            // Catch the Promise error caused by transaction abortion
+            await deleteItemsTrans.done;
+        } catch (e) {
+            throw errMsg;
+        }
     }
-    await deleteItemsTrans.done;
 }
 
 export async function addItems(customDB: CustomDB, items: ItemConfig[]) {
@@ -314,17 +312,23 @@ export async function addItems(customDB: CustomDB, items: ItemConfig[]) {
             const table = addItemsTrans.objectStore(item.tableName);
             table.put(itemWrapper(item));
         });
-    } catch (e) {
-        // Make sure addItems operation is atomic
+        await addItemsTrans.done;
+        db.close();
+    } catch (errMsg) {
+        db.close();
+        // Abort transaction manually to keep addItems operation atomic.
         try {
             addItemsTrans.abort();
         } catch (e) {
-            console.log('trans abort failed!');
-            // Do nothing if trans aborted failed
+            // Do nothing if transaction abort failed.
+        }
+        try {
+            // Catch the Promise error caused by transaction abortion.
+            await addItemsTrans.done;
+        } catch (e) {
+            throw errMsg;
         }
     }
-    await addItemsTrans.done;
-    db.close();
 }
 
 export async function getItem(
@@ -333,13 +337,18 @@ export async function getItem(
     primaryKeyValue: any
 ) {
     const db = await openDB(dbName);
-    const item = await getItemFromDB(
-        (db as any) as IDBDatabase,
-        tableName,
-        primaryKeyValue
-    );
-    db.close();
-    return item;
+    try {
+        const item = await getItemFromDB(
+            (db as any) as IDBDatabase,
+            tableName,
+            primaryKeyValue
+        );
+        db.close();
+        return item;
+    } catch (e) {
+        db.close();
+        throw e;
+    }
 }
 
 export async function getItemsInRange(
@@ -348,33 +357,40 @@ export async function getItemsInRange(
     indexRange?: IndexRange
 ) {
     const db = await openDB(dbName);
-    if (db.objectStoreNames.contains(tableName)) {
+    try {
+        if (!db.objectStoreNames.contains(tableName)) {
+            throw FormattedResult['TABLE_NOT_FOUND'];
+        }
         const trans = db.transaction(tableName, 'readonly');
         const table = trans.objectStore(tableName);
+        let items = []
         // Get all items in table if indexRange is undefined
         if (!indexRange) {
-            let items = await table.getAll();
-            return (items || []).map(itemUnwrapper);
+            let wrappedItems = await table.getAll();
+            items = (wrappedItems || []).map(itemUnwrapper);
         } else {
             let index = table.index(indexRange.indexName);
             let cursor = await index.openCursor(indexRange2DBKey(indexRange));
-            let items = [];
             while (cursor) {
                 items.push(itemUnwrapper(cursor.value));
                 cursor = await cursor.continue();
             }
-            db.close();
-            return items;
         }
-    } else {
         db.close();
-        throw FormattedResult['TABLE_NOT_FOUND'];
+        return items;
+    } catch (e) {
+        db.close();
+        throw e;
     }
 }
 
 export async function deleteDB(dbName: string) {
     await unregisterDBInManager(dbName);
-    await IDBDeleteDB(dbName);
+    await IDBDeleteDB(dbName, {
+        blocked() {
+            console.log('blocked!')
+        }
+    });
 }
 
 export async function deleteItems(
