@@ -9,7 +9,7 @@ interface DB {
     version: number;
 }
 interface ItemInTable {
-    [key: string]: any; // All properties in ItemConfig.item
+    [key: string]: any;
     expireTime: number;
     updateTime: number;
 }
@@ -44,6 +44,10 @@ type IndexRange = {
     lowerExclusive?: boolean;
     upperExclusive?: boolean;
 };
+type TableIndexRange = {
+    tableName: string;
+    indexRange?: IndexRange;
+}
 type MiliSeconds = number;
 type ParamChecker = {
     rule: Function;

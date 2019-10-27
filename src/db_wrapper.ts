@@ -255,29 +255,29 @@ function upgradeDBWithTableList(
     }
 }
 
-async function deleteExpiredItemsFromTable(db: any, tableNameList: string[]) {
-    tableNameList.forEach(tableName => {
+async function deleteItemsFromDB(db: any, tableIndexRanges: TableIndexRange[]) {
+    const dedupTableNameList: string[] = deduplicateList(
+        tableIndexRanges.map(tableIndexRange => tableIndexRange.tableName)
+    );
+    dedupTableNameList.forEach(tableName => {
         if (!db.objectStoreNames.contains(tableName)) {
             throw FormattedResult['TABLE_NOT_FOUND'];
         }
     });
-    const deleteItemsTrans = db.transaction(tableNameList, 'readwrite');
+    const deleteItemsTrans = db.transaction(dedupTableNameList, 'readwrite');
     try {
-        for (let tableName of tableNameList) {
+        for (let tableIndexRange of tableIndexRanges) {
+            const { tableName, indexRange } = tableIndexRange;
             const table = deleteItemsTrans.objectStore(tableName);
-            let index = table.index(EXPIRETIME_KEYNAME);
-            let cursor = (await index.openCursor(
-                indexRange2DBKey({
-                    indexName: EXPIRETIME_KEYNAME,
-                    lowerIndex: 0,
-                    upperIndex: Date.now(),
-                    lowerExclusive: false,
-                    upperExclusive: false
-                })
-            )) as any;
-            while (cursor) {
-                table.delete(cursor.primaryKey);
-                cursor = await cursor.continue();
+            if (!indexRange) {
+                await table.clear();
+            } else {
+                let index = table.index(indexRange.indexName);
+                let cursor = await index.openCursor(indexRange2DBKey(indexRange));
+                while (cursor) {
+                    table.delete(cursor.primaryKey);
+                    cursor = await cursor.continue();
+                }
             }
         }
         await deleteItemsTrans.done;
@@ -353,9 +353,9 @@ export async function getItem(
 
 export async function getItemsInRange(
     dbName: string,
-    tableName: string,
-    indexRange?: IndexRange
+    tableIndexRange: TableIndexRange
 ) {
+    const { tableName, indexRange } = tableIndexRange
     const db = await openDB(dbName);
     try {
         if (!db.objectStoreNames.contains(tableName)) {
@@ -386,26 +386,24 @@ export async function getItemsInRange(
 
 export async function deleteDB(dbName: string) {
     await unregisterDBInManager(dbName);
-    await IDBDeleteDB(dbName, {
-        blocked() {
-            console.log('blocked!')
-        }
-    });
+    await IDBDeleteDB(dbName);
 }
 
 export async function deleteItems(
     dbName: string,
-    itemsToDelete: {
-        tableName: string;
-        indexRange: IndexRange;
-    }[]
+    tableIndexRanges: TableIndexRange[]
 ) {
-    const db = await openDB(dbName);
-    const dedupTableNameList: string[] = deduplicateList(
-        itemsToDelete.map(item => item.tableName)
-    );
-    // FIXME
-    await deleteExpiredItemsFromTable(db, dedupTableNameList);
+    try {
+        const db = await openDB(dbName);
+        await deleteItemsFromDB(db, tableIndexRanges);
+    } catch (e) {
+        if (e.msg === FormattedResult.DB_NOT_FOUND.msg || e.msg === FormattedResult.TABLE_NOT_FOUND.msg) {
+            // If db or table does not exist, no need to deleteItems at all.
+            return;
+        } else {
+            throw e;
+        }
+    }
 }
 
 export default {

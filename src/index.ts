@@ -1,7 +1,7 @@
 import DBEnvChecker from './lib/db_env_checker';
 import FormattedResult from './lib/formatted_result';
 import DBWrapper from './db_wrapper';
-import { ParamCheckerEnum, paramChecker, optionWithBackup } from './lib/utils';
+import { ParamCheckerEnum, paramChecker, optionWithBackup } from './lib/utils'
 const DEFAULT_DB_VERSION: number = 1;
 const OPTIONAL = true;
 function _customDBConfigChecker(dbConfig: DBConfig): void {
@@ -71,50 +71,75 @@ function _customDBAddItemsParamChecker(
     items: ItemConfig[],
     tableListInDB: TableConfig[]
 ): void {
-    const tableNamesInDB = tableListInDB.map(table => table.tableName);
     paramChecker(items, ParamCheckerEnum.Array, 'items', !OPTIONAL);
-    items.forEach(item => {
+    items.forEach(itemOfTable => {
         paramChecker(
-            item.tableName,
+            itemOfTable.tableName,
             ParamCheckerEnum.String,
             "item's tableName",
             !OPTIONAL
         );
         paramChecker(
-            item.itemDuration,
+            itemOfTable.itemDuration,
             ParamCheckerEnum.NonNegativeInteger,
             "item's itemDuration",
             OPTIONAL
         );
-        if (tableNamesInDB.indexOf(item.tableName) < 0) {
-            throw `Table ${item.tableName} does not exist`;
+        const theTable = tableListInDB.find(
+            table => table.tableName === itemOfTable.tableName
+        );
+        if (!theTable) {
+            throw `Table ${itemOfTable.tableName} does not exist`;
+        } else if (
+            theTable.primaryKey !== undefined &&
+            Object.getOwnPropertyNames(itemOfTable).indexOf(
+                theTable.primaryKey
+            ) < 0
+        ) {
+            throw `primaryKey is needed for item in table ${itemOfTable.tableName}`;
         }
     });
-    // TODO item不包含自定义的primaryKey需要报错
 }
 
-function indexRangeParamChecker(indexRange?: IndexRange): void {
+function tableIndexRangeParamChecker(tableIndexRange: TableIndexRange): void {
     paramChecker(
-        indexRange,
+        tableIndexRange,
         ParamCheckerEnum.NotNullObject,
-        'indexRange',
+        'tableIndexRange',
+        !OPTIONAL
+    );
+    paramChecker(
+        tableIndexRange.tableName,
+        ParamCheckerEnum.String,
+        "tableIndexRange's",
+        !OPTIONAL
+    );
+    paramChecker(
+        tableIndexRange.indexRange,
+        ParamCheckerEnum.NotNullObject,
+        "tableIndexRange's indexRange",
         OPTIONAL
     );
-    if (indexRange) {
+    if (tableIndexRange.indexRange) {
+        const {
+            indexName,
+            lowerExclusive,
+            upperExclusive
+        } = tableIndexRange.indexRange;
         paramChecker(
-            indexRange.indexName,
+            indexName,
             ParamCheckerEnum.String,
             "indexRange's indexName",
             !OPTIONAL
         );
         paramChecker(
-            indexRange.lowerExclusive,
+            lowerExclusive,
             ParamCheckerEnum.Boolean,
             "indexRange's lowerExclusive",
             OPTIONAL
         );
         paramChecker(
-            indexRange.upperExclusive,
+            upperExclusive,
             ParamCheckerEnum.Boolean,
             "indexRange's upperExclusive",
             OPTIONAL
@@ -164,13 +189,13 @@ export class CustomDB {
             }
         };
         try {
-            try {
-                _customDBAddItemsParamChecker(items, this.tableList);
-            } catch (errMsg) {
-                throw FormattedResult['PARAM_INVALID'].setData({
-                    desc: `${errMsg}`
-                });
-            }
+            _customDBAddItemsParamChecker(items, this.tableList);
+        } catch (errMsg) {
+            throw FormattedResult['PARAM_INVALID'].setData({
+                desc: `${errMsg}`
+            });
+        }
+        try {
             // Set backup itemDuration to each item
             const itemsWithDuration = items.map(item => {
                 const theTable: TableConfig = this.tableList.find(
@@ -209,19 +234,18 @@ export class CustomDB {
         }
     }
 
-    async getItemsInRange(tableName: string, indexRange?: IndexRange) {
+    async getItemsInRange(tableIndexRange: TableIndexRange) {
         try {
-            try {
-                indexRangeParamChecker(indexRange);
-            } catch (errMsg) {
-                throw FormattedResult['PARAM_INVALID'].setData({
-                    desc: `${errMsg}`
-                });
-            }
+            tableIndexRangeParamChecker(tableIndexRange);
+        } catch (errMsg) {
+            throw FormattedResult['PARAM_INVALID'].setData({
+                desc: `${errMsg}`
+            });
+        }
+        try {
             return await DBWrapper.getItemsInRange(
                 this.name,
-                tableName,
-                indexRange
+                tableIndexRange
             );
         } catch (e) {
             throw FormattedResult['GET_IN_RANGE_FAIL'].setData({
@@ -230,9 +254,21 @@ export class CustomDB {
         }
     }
 
-    async deleteItems(items: { tableName: string; indexRange: IndexRange }[]) {
+    async deleteItemsInRange(
+        tableIndexRanges: TableIndexRange[]
+    ) {
         try {
-            await DBWrapper.deleteItems(this.name, items);
+            paramChecker(tableIndexRanges, ParamCheckerEnum.Array, 'tableIndexRanges', !OPTIONAL);
+            tableIndexRanges.forEach((tableIndexRange) => {
+                tableIndexRangeParamChecker(tableIndexRange);
+            })
+        } catch (errMsg) {
+            throw FormattedResult['PARAM_INVALID'].setData({
+                desc: `${errMsg}`
+            });
+        }
+        try {
+            await DBWrapper.deleteItems(this.name, tableIndexRanges);
             return FormattedResult['SUCC'];
         } catch (e) {
             throw FormattedResult['DELETE_ITEMS_FAIL'].setData({
