@@ -191,7 +191,7 @@ function upgradeDBWithTableList(
     try {
         tableList.forEach(tableConfig => {
             // If table already exists.
-            if (upgradeDB.objectStoreNames.contains(tableConfig.tableName)) {
+            if (upgradeDB.objectStoreNames.contains(tableConfig.tableName as string)) {
                 const currentTable = transaction.objectStore(
                     tableConfig.tableName
                 );
@@ -215,7 +215,7 @@ function upgradeDBWithTableList(
             } else {
                 const tablePrimaryKey = tableConfig.primaryKey || 'id';
                 const tableToCreate = upgradeDB.createObjectStore(
-                    tableConfig.tableName,
+                    tableConfig.tableName as string,
                     {
                         ...{ keyPath: tablePrimaryKey },
                         ...(tablePrimaryKey === 'id'

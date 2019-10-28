@@ -25,7 +25,7 @@ export interface DBConfig {
     itemDuration?: MiliSeconds;
 }
 export interface TableConfig {
-    tableName: string;
+    tableName?: string;
     primaryKey?: string;
     indexList?: IndexOfTable[];
     itemDuration?: MiliSeconds;
