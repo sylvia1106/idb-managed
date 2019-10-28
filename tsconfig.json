@@ -4,6 +4,8 @@
         "target": "es5",
         "module": "commonjs",
         "strict": true,
-        "lib": ["es6", "dom"]
+        "lib": ["es6", "dom"],
+        "skipLibCheck": true,
+        "declaration": true
     }
 }

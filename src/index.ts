@@ -1,7 +1,15 @@
 import DBEnvChecker from './lib/db_env_checker';
 import FormattedResult from './lib/formatted_result';
 import DBWrapper from './db_wrapper';
-import { ParamCheckerEnum, paramChecker, optionWithBackup } from './lib/utils'
+import { ParamCheckerEnum, paramChecker, optionWithBackup } from './lib/utils';
+import {
+    DBConfig,
+    ItemConfig,
+    TableConfig,
+    TableIndexRange,
+    MiliSeconds
+} from './interface';
+export * from './interface';
 const DEFAULT_DB_VERSION: number = 1;
 const OPTIONAL = true;
 function _customDBConfigChecker(dbConfig: DBConfig): void {
@@ -92,7 +100,7 @@ function _customDBAddItemsParamChecker(
             throw `Table ${itemOfTable.tableName} does not exist`;
         } else if (
             theTable.primaryKey !== undefined &&
-            Object.getOwnPropertyNames(itemOfTable).indexOf(
+            Object.getOwnPropertyNames(itemOfTable.item).indexOf(
                 theTable.primaryKey
             ) < 0
         ) {
@@ -243,10 +251,7 @@ export class CustomDB {
             });
         }
         try {
-            return await DBWrapper.getItemsInRange(
-                this.name,
-                tableIndexRange
-            );
+            return await DBWrapper.getItemsInRange(this.name, tableIndexRange);
         } catch (e) {
             throw FormattedResult['GET_IN_RANGE_FAIL'].setData({
                 desc: `${e}`
@@ -254,14 +259,17 @@ export class CustomDB {
         }
     }
 
-    async deleteItemsInRange(
-        tableIndexRanges: TableIndexRange[]
-    ) {
+    async deleteItemsInRange(tableIndexRanges: TableIndexRange[]) {
         try {
-            paramChecker(tableIndexRanges, ParamCheckerEnum.Array, 'tableIndexRanges', !OPTIONAL);
-            tableIndexRanges.forEach((tableIndexRange) => {
+            paramChecker(
+                tableIndexRanges,
+                ParamCheckerEnum.Array,
+                'tableIndexRanges',
+                !OPTIONAL
+            );
+            tableIndexRanges.forEach(tableIndexRange => {
                 tableIndexRangeParamChecker(tableIndexRange);
-            })
+            });
         } catch (errMsg) {
             throw FormattedResult['PARAM_INVALID'].setData({
                 desc: `${errMsg}`

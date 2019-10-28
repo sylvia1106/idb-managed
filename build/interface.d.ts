@@ -1,55 +1,54 @@
-interface ItemInDBManager {
+/**
+ * @file export interfaces needed in idb-manager
+ */
+export interface ItemInDBManager {
     dbName: string;
     tableList: TableConfig[];
     version: number;
 }
-interface DB {
+export interface DB {
     name: string;
     tableList: TableConfig[];
     version: number;
 }
-interface ItemInTable {
+export interface ItemInTable {
     [key: string]: any;
     expireTime: number;
     updateTime: number;
 }
-type DBConfig = {
+export interface DBConfig {
     dbName: string;
     tables?: {
         [key: string]: TableConfig;
     };
     dbVersion?: number;
     itemDuration?: MiliSeconds;
-};
-type TableConfig = {
+}
+export interface TableConfig {
     tableName: string;
     primaryKey?: string;
     indexList?: IndexOfTable[];
     itemDuration?: MiliSeconds;
-};
-type IndexOfTable = {
+}
+export interface IndexOfTable {
     indexName: string;
     unique?: boolean;
-};
-type ItemConfig = {
+}
+export interface ItemConfig {
     tableName: string;
     item: any;
     itemDuration?: MiliSeconds;
-};
-type IndexRange = {
+}
+export interface IndexRange {
     indexName: string;
     onlyIndex?: any;
     lowerIndex?: any;
     upperIndex?: any;
     lowerExclusive?: boolean;
     upperExclusive?: boolean;
-};
-type TableIndexRange = {
+}
+export interface TableIndexRange {
     tableName: string;
     indexRange?: IndexRange;
 }
-type MiliSeconds = number;
-type ParamChecker = {
-    rule: Function;
-    desc: string;
-};
+export declare type MiliSeconds = number;

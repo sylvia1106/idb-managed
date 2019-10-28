@@ -1,26 +1,35 @@
+"use strict";
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
 /**
  * @file Provide unified formatted result for idb-managed
  */
-export class ResultFormatter {
-    readonly code: number;
-    readonly msg: string;
-    data: any;
-    constructor(theCode: number, theMsg: string) {
+var ResultFormatter = /** @class */ (function () {
+    function ResultFormatter(theCode, theMsg) {
         this.code = theCode;
         this.msg = theMsg;
     }
-    setData(supplyment: Object) {
-        this.data = { ...this.data, ...supplyment };
+    ResultFormatter.prototype.setData = function (supplyment) {
+        this.data = __assign(__assign({}, this.data), supplyment);
         return this;
-    }
-    toString() {
-        return `FormattedResult{code: ${this.code}, msg: ${
-            this.msg
-        }, data: ${JSON.stringify(this.data)}}`;
-    }
-}
-
-export default {
+    };
+    ResultFormatter.prototype.toString = function () {
+        return "FormattedResult{code: " + this.code + ", msg: " + this.msg + ", data: " + JSON.stringify(this.data) + "}";
+    };
+    return ResultFormatter;
+}());
+exports.ResultFormatter = ResultFormatter;
+exports.default = {
     get DB_NOT_SUPPORT() {
         return new ResultFormatter(100, 'IndexedDB is not supported');
     },

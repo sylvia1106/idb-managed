@@ -1,3 +1,4 @@
+
 /**
  * @file Wrap idb APIs for idb-managed
  */
@@ -5,6 +6,7 @@ import { CustomDB } from './index';
 import { openDB as IDBOpenDB, deleteDB as IDBDeleteDB } from 'idb';
 import { deduplicateList } from './lib/utils';
 import FormattedResult from './lib/formatted_result';
+import { IndexRange, ItemConfig, ItemInTable, DB, ItemInDBManager, TableConfig, IndexOfTable, TableIndexRange } from './interface'
 const IDB_MANAGER_VERSION = 1;
 const IDB_MANAGER_DB_NAME = 'IDB_MANAGER_DB';
 const IDB_MANAGER_DB_TABLE_NAME = 'IDB_MANAGER_STORE';

@@ -1,3 +1,7 @@
+interface ParamChecker {
+    rule: Function;
+    desc: string;
+};
 export const ParamCheckerEnum = {
     NonNegativeInteger: {
         rule: isNonNegativeInteger,

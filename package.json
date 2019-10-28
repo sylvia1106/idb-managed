@@ -3,12 +3,13 @@
   "version": "1.0.0",
   "description": "Easy API wrapper for IndexedDB, with DB manager to manage local DBs. Based on jakearchibald/idb.",
   "main": "./build/index.js",
+  "types": "./build/index.d.ts",
   "directories": {
     "lib": "lib"
   },
   "scripts": {
     "test": "",
-    "build": "gulp build",
+    "build": "rm -rf build && tsc",
     "standalone": "gulp webpack && gulp demo"
   },
   "repository": {
