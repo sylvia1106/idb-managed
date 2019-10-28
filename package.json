@@ -1,6 +1,6 @@
 {
   "name": "idb-managed",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Easy API wrapper for IndexedDB, with DB manager to manage local DBs. Based on jakearchibald/idb.",
   "main": "./build/index.js",
   "types": "./build/index.d.ts",
@@ -10,7 +10,8 @@
   "scripts": {
     "test": "",
     "build": "rm -rf build && tsc",
-    "standalone": "gulp webpack && gulp demo"
+    "standalone": "gulp webpack && gulp demo",
+    "prepublish": "npm run build && npm run standalone"
   },
   "repository": {
     "type": "git",
