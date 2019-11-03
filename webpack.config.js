@@ -1,5 +1,7 @@
-var webpack = require('webpack');
 var path = require('path');
+const STATIC_JS = 'js'
+const PUBLIC_PATH = '/' + STATIC_JS + '/'
+const DEMO_PATH = './demo'
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer')
     .BundleAnalyzerPlugin;
 
@@ -10,17 +12,14 @@ module.exports = [
             'idb-managed': ['./src/index.ts']
         },
         output: {
-            path: path.join(__dirname, './dist'),
+            path: path.join(__dirname, DEMO_PATH, STATIC_JS),
+            publicPath: PUBLIC_PATH,
             filename: '[name].js',
-            chunkFilename: '[name].[chunkhash].js',
-            publicPath: './',
             library: 'IDBM',
-            libraryTarget: 'umd',
-            crossOriginLoading: 'anonymous'
+            libraryTarget: 'umd'
         },
-        devtool: 'source-map',
         resolve: {
-            extensions: ['.ts', '.tsx']
+            extensions: ['.ts', '.js']
         },
         module: {
             rules: [
@@ -35,6 +34,12 @@ module.exports = [
                 }
             ]
         },
-        // plugins: [new BundleAnalyzerPlugin()]
+        // plugins: [new BundleAnalyzerPlugin()],
+        devServer: {
+            hot: true,
+            contentBase: DEMO_PATH,
+            publicPath: PUBLIC_PATH,
+            open: true
+        }
     }
 ];

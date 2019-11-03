@@ -47,21 +47,14 @@ export function paramChecker(
     const exp = `${paramName} ${checker.desc}`;
     if (optional) {
         if (param !== undefined && !checker.rule(param)) {
-            throw `${exp} if defined`;
+            throw new Error(`${exp} if defined`);
         }
     } else {
         if (!checker.rule(param)) {
-            throw `${exp}`;
+            throw new Error(exp);
         }
     }
 }
 export function deduplicateList(list: any[]) {
-    let deduplicatedList = list.reduce((accumulator, currentItem) => {
-        if (accumulator.indexOf(currentItem) < 0) {
-            return accumulator.concat(currentItem)
-        } else {
-            return accumulator
-        }
-    }, [])
-    return deduplicatedList
+    return Array.from(new Set(list));
 }

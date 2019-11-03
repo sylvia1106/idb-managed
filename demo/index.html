@@ -13,7 +13,7 @@
         <button onclick="getItems()">getItems</button>
         <button onclick="deleteDB()">deleteDB</button>
         <button onclick="deleteItems()">deleteItems</button>
-        <script src="./idb-managed.js"></script>
+        <script src="./js/idb-managed.js"></script>
         <script>
             console.log(IDBM.idbIsSupported());
             const db = new IDBM.CustomDB({
@@ -43,7 +43,7 @@
                 return db.addItems([
                     {
                         tableName: 'table1',
-                        item: { key1: 'xixi', value1: '1' },
+                        item: { key1: 'xixi', value1: new Date().getSeconds() },
                         itemDuration: 1000
                     },
                     {
@@ -57,8 +57,8 @@
                     },
                     {
                         tableName: 'table3',
-                        item: { value: '2'},
-                        itemDuration: 1000
+                        item: { value: new Date().getSeconds()},
+                        itemDuration: 10 * 1000
                     }
                 ])
                     .then(ob => {
@@ -79,38 +79,30 @@
                 }
             }
             function getItem() {
-                addItems()
-                    .then(() => {
-                        db.getItem('table1', 'heihei')
-                            .then(ob => {
-                                console.log(ob);
-                            })
-                            .catch(e => {
-                                console.log(e);
-                            });
+                db.getItem('table1', 'xixi')
+                    .then(ob => {
+                        console.log(ob);
                     })
+                    .catch(e => {
+                        console.log(e);
+                    });
             }
             function getItems() {
-                addItems()
-                    .then(() => {
-                        db.getItemsInRange({
-                            tableName: 'table1',
-                            indexRange: {
-                                indexName: 'value1',
-                                // onlyIndex: 'haha',
-                                // lowerIndex?: any,
-                                upperIndex: '2',
-                                lowerExclusive: true,
-                                upperExclusive: true,
-                            }
-                        })
-                            .then(ob => {
-                                console.log(ob);
-                            })
-                            .catch(e => {
-                                console.log(e);
-                            });
+                db.getItemsInRange({
+                    tableName: 'table3',
+                    indexRange: {
+                        indexName: 'id',
+                        upperIndex: '2',
+                        lowerExclusive: true,
+                        upperExclusive: true,
+                    }
+                })
+                    .then(ob => {
+                        console.log(ob);
                     })
+                    .catch(e => {
+                        console.log(e);
+                    });
             }
             function deleteItems() {
                 // addItems()

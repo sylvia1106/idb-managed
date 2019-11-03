@@ -1,5 +1,4 @@
-import DBEnvChecker from './lib/db_env_checker';
-import FormattedResult from './lib/formatted_result';
+import dbEnvChecker from './lib/db_env_checker';
 import DBWrapper from './db_wrapper';
 import { ParamCheckerEnum, paramChecker, optionWithBackup } from './lib/utils';
 import {
@@ -156,8 +155,12 @@ function tableIndexRangeParamChecker(tableIndexRange: TableIndexRange): void {
 }
 
 export function idbIsSupported(): boolean {
-    let supportResult = DBEnvChecker.getResult();
-    return supportResult !== FormattedResult['DB_NOT_SUPPORT'];
+    try {
+        dbEnvChecker();
+        return true;
+    } catch (e) {
+        return false;
+    }
 }
 export class CustomDB {
     readonly name: string;
@@ -165,13 +168,8 @@ export class CustomDB {
     readonly tableList: TableConfig[];
     readonly itemDuration?: MiliSeconds;
     constructor(dbConfig: DBConfig) {
-        try {
-            _customDBConfigChecker(dbConfig);
-        } catch (errMsg) {
-            throw FormattedResult['PARAM_INVALID'].setData({
-                desc: `${errMsg}`
-            });
-        }
+        idbIsSupported();
+        _customDBConfigChecker(dbConfig);
         this.name = dbConfig.dbName;
         this.version = optionWithBackup(dbConfig.dbVersion, DEFAULT_DB_VERSION);
         this.tableList = Object.keys(dbConfig.tables || {}).map(tableName => {
@@ -196,112 +194,59 @@ export class CustomDB {
                 return ofDB;
             }
         };
-        try {
-            _customDBAddItemsParamChecker(items, this.tableList);
-        } catch (errMsg) {
-            throw FormattedResult['PARAM_INVALID'].setData({
-                desc: `${errMsg}`
-            });
-        }
-        try {
-            // Set backup itemDuration to each item
-            const itemsWithDuration = items.map(item => {
-                const theTable: TableConfig = this.tableList.find(
-                    table => table.tableName === item.tableName
-                ) as TableConfig;
-                return {
-                    ...{
-                        itemDuration: itemDurationOverrider(
-                            this.itemDuration,
-                            theTable.itemDuration,
-                            item.itemDuration
-                        )
-                    },
-                    ...item
-                };
-            });
-            await DBWrapper.addItems(this, itemsWithDuration);
-            return FormattedResult['SUCC'];
-        } catch (e) {
-            throw FormattedResult['ADD_ITEMS_FAIL'].setData({
-                desc: `${e}`
-            });
-        }
+        _customDBAddItemsParamChecker(items, this.tableList);
+        // Set backup itemDuration to each item
+        const itemsWithDuration = items.map(item => {
+            const theTable: TableConfig = this.tableList.find(
+                table => table.tableName === item.tableName
+            ) as TableConfig;
+            return {
+                ...{
+                    itemDuration: itemDurationOverrider(
+                        this.itemDuration,
+                        theTable.itemDuration,
+                        item.itemDuration
+                    )
+                },
+                ...item
+            };
+        });
+        await DBWrapper.addItems(
+            {
+                name: this.name,
+                tableList: this.tableList,
+                version: this.version
+            },
+            itemsWithDuration
+        );
     }
     async getItem(tableName: string, primaryKeyValue: any) {
-        try {
-            return await DBWrapper.getItem(
-                this.name,
-                tableName,
-                primaryKeyValue
-            );
-        } catch (e) {
-            throw FormattedResult['GET_ITEM_FAIL'].setData({
-                desc: `${e}`
-            });
-        }
+        return await DBWrapper.getItem(this.name, tableName, primaryKeyValue);
     }
 
     async getItemsInRange(tableIndexRange: TableIndexRange) {
-        try {
-            tableIndexRangeParamChecker(tableIndexRange);
-        } catch (errMsg) {
-            throw FormattedResult['PARAM_INVALID'].setData({
-                desc: `${errMsg}`
-            });
-        }
-        try {
-            return await DBWrapper.getItemsInRange(this.name, tableIndexRange);
-        } catch (e) {
-            throw FormattedResult['GET_IN_RANGE_FAIL'].setData({
-                desc: `${e}`
-            });
-        }
+        tableIndexRangeParamChecker(tableIndexRange);
+        return await DBWrapper.getItemsInRange(this.name, tableIndexRange);
     }
 
     async deleteItemsInRange(tableIndexRanges: TableIndexRange[]) {
-        try {
-            paramChecker(
-                tableIndexRanges,
-                ParamCheckerEnum.Array,
-                'tableIndexRanges',
-                !OPTIONAL
-            );
-            tableIndexRanges.forEach(tableIndexRange => {
-                tableIndexRangeParamChecker(tableIndexRange);
-            });
-        } catch (errMsg) {
-            throw FormattedResult['PARAM_INVALID'].setData({
-                desc: `${errMsg}`
-            });
-        }
-        try {
-            await DBWrapper.deleteItems(this.name, tableIndexRanges);
-            return FormattedResult['SUCC'];
-        } catch (e) {
-            throw FormattedResult['DELETE_ITEMS_FAIL'].setData({
-                desc: `${e}`
-            });
-        }
+        paramChecker(
+            tableIndexRanges,
+            ParamCheckerEnum.Array,
+            'tableIndexRanges',
+            !OPTIONAL
+        );
+        tableIndexRanges.forEach(tableIndexRange => {
+            tableIndexRangeParamChecker(tableIndexRange);
+        });
+        await DBWrapper.deleteItems(this.name, tableIndexRanges);
     }
 }
 
 export async function deleteDB(dbName: string) {
-    try {
-        paramChecker(dbName, ParamCheckerEnum.String, 'dbName', !OPTIONAL);
-    } catch (errMsg) {
-        throw FormattedResult['PARAM_INVALID'].setData({
-            desc: `${errMsg}`
-        });
-    }
-    try {
-        await DBWrapper.deleteDB(dbName);
-        return FormattedResult['SUCC'];
-    } catch (e) {
-        throw FormattedResult['DELETE_DB_FAIL'].setData({
-            desc: `${e}`
-        });
-    }
+    dbEnvChecker();
+    paramChecker(dbName, ParamCheckerEnum.String, 'dbName', !OPTIONAL);
+    await DBWrapper.deleteDB(dbName);
 }
 export default {
     idbIsSupported,

@@ -4,13 +4,6 @@ var tsProject = ts.createProject('tsconfig.json');
 var webpack = require('webpack');
 var gutil = require('gulp-util');
 
-gulp.task('build', function() {
-    return tsProject
-        .src()
-        .pipe(tsProject())
-        .js.pipe(gulp.dest('build'));
-});
-
 gulp.task('webpack', function(cb) {
     webpack(require('./webpack.config'), function(err, stats) {
         if (err) {

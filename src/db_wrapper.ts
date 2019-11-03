@@ -1,18 +1,31 @@
-
 /**
  * @file Wrap idb APIs for idb-managed
  */
-import { CustomDB } from './index';
 import { openDB as IDBOpenDB, deleteDB as IDBDeleteDB } from 'idb';
-import { deduplicateList } from './lib/utils';
-import FormattedResult from './lib/formatted_result';
-import { IndexRange, ItemConfig, ItemInTable, DB, ItemInDBManager, TableConfig, IndexOfTable, TableIndexRange } from './interface'
+import {
+    IndexRange,
+    ItemConfig,
+    ItemInTable,
+    TableConfig,
+    IndexOfTable,
+    TableIndexRange
+} from './interface';
 const IDB_MANAGER_VERSION = 1;
 const IDB_MANAGER_DB_NAME = 'IDB_MANAGER_DB';
 const IDB_MANAGER_DB_TABLE_NAME = 'IDB_MANAGER_STORE';
 const IDB_MANAGER_DB_TABLE_INDEX_NAME = 'dbName';
 const UPDATETIME_KEYNAME = 'updateTime';
 const EXPIRETIME_KEYNAME = 'expireTime';
+interface ItemInDBManager {
+    dbName: string;
+    tableList: TableConfig[];
+    version: number;
+}
+interface DB {
+    name: string;
+    tableList: TableConfig[];
+    version: number;
+}
 function indexRange2DBKey(indexRange: IndexRange) {
     const {
         onlyIndex,
@@ -156,7 +169,7 @@ async function openDB(dbName: string) {
         );
         return db;
     } else {
-        throw FormattedResult['DB_NOT_FOUND'];
+        return null;
     }
 }
 
@@ -173,7 +186,7 @@ async function getItemFromDB(
         )) as any) as ItemInTable;
         return itemUnwrapper(itemInTable);
     } else {
-        throw FormattedResult['TABLE_NOT_FOUND'];
+        return null;
     }
 }
 
@@ -191,7 +204,11 @@ function upgradeDBWithTableList(
     try {
         tableList.forEach(tableConfig => {
             // If table already exists.
-            if (upgradeDB.objectStoreNames.contains(tableConfig.tableName as string)) {
+            if (
+                upgradeDB.objectStoreNames.contains(
+                    tableConfig.tableName as string
+                )
+            ) {
                 const currentTable = transaction.objectStore(
                     tableConfig.tableName
                 );
@@ -252,30 +269,29 @@ function upgradeDBWithTableList(
             }
         });
     } catch (e) {
-        console.log(e);
         upgradeDB.close(); // Close upgraded DB to trigger the failure of this opening process.
     }
 }
 
 async function deleteItemsFromDB(db: any, tableIndexRanges: TableIndexRange[]) {
-    const dedupTableNameList: string[] = deduplicateList(
-        tableIndexRanges.map(tableIndexRange => tableIndexRange.tableName)
-    );
-    dedupTableNameList.forEach(tableName => {
-        if (!db.objectStoreNames.contains(tableName)) {
-            throw FormattedResult['TABLE_NOT_FOUND'];
-        }
+    const validRanges = tableIndexRanges.filter(indexRange => {
+        return db.objectStoreNames.contains(indexRange.tableName);
     });
+    const dedupTableNameList: string[] = Array.from(
+        new Set(validRanges.map(tableIndexRange => tableIndexRange.tableName))
+    );
     const deleteItemsTrans = db.transaction(dedupTableNameList, 'readwrite');
     try {
-        for (let tableIndexRange of tableIndexRanges) {
+        for (const tableIndexRange of validRanges) {
             const { tableName, indexRange } = tableIndexRange;
             const table = deleteItemsTrans.objectStore(tableName);
             if (!indexRange) {
                 await table.clear();
             } else {
                 let index = table.index(indexRange.indexName);
-                let cursor = await index.openCursor(indexRange2DBKey(indexRange));
+                let cursor = await index.openCursor(
+                    indexRange2DBKey(indexRange)
+                );
                 while (cursor) {
                     table.delete(cursor.primaryKey);
                     cursor = await cursor.continue();
@@ -301,13 +317,24 @@ async function deleteItemsFromDB(db: any, tableIndexRanges: TableIndexRange[]) {
     }
 }
 
-export async function addItems(customDB: CustomDB, items: ItemConfig[]) {
-    const db = await createDB(customDB);
-    const dedupTableNameList: string[] = deduplicateList(
-        items.map(item => item.tableName)
+export async function addItems(dbInfo: DB, items: ItemConfig[]) {
+    const dedupTableNameList: string[] = Array.from(
+        new Set(items.map(item => item.tableName))
     );
-    // FIXME
-    // await deleteExpiredItemsFromTable(db, dedupTableNameList);
+    await deleteItems(
+        dbInfo.name,
+        dedupTableNameList.map(tableName => {
+            return {
+                tableName: tableName,
+                indexRange: {
+                    indexName: EXPIRETIME_KEYNAME,
+                    upperIndex: +new Date(),
+                    upperExclusive: false
+                }
+            };
+        })
+    );
+    const db = await createDB(dbInfo);
     const addItemsTrans = db.transaction(dedupTableNameList, 'readwrite');
     try {
         items.forEach(item => {
@@ -339,17 +366,21 @@ export async function getItem(
     primaryKeyValue: any
 ) {
     const db = await openDB(dbName);
-    try {
-        const item = await getItemFromDB(
-            (db as any) as IDBDatabase,
-            tableName,
-            primaryKeyValue
-        );
-        db.close();
-        return item;
-    } catch (e) {
-        db.close();
-        throw e;
+    if (db) {
+        try {
+            const item = await getItemFromDB(
+                (db as any) as IDBDatabase,
+                tableName,
+                primaryKeyValue
+            );
+            db.close();
+            return item;
+        } catch (e) {
+            db.close();
+            throw e;
+        }
+    } else {
+        return null;
     }
 }
 
@@ -357,32 +388,40 @@ export async function getItemsInRange(
     dbName: string,
     tableIndexRange: TableIndexRange
 ) {
-    const { tableName, indexRange } = tableIndexRange
+    const { tableName, indexRange } = tableIndexRange;
     const db = await openDB(dbName);
-    try {
-        if (!db.objectStoreNames.contains(tableName)) {
-            throw FormattedResult['TABLE_NOT_FOUND'];
-        }
-        const trans = db.transaction(tableName, 'readonly');
-        const table = trans.objectStore(tableName);
-        let items = []
-        // Get all items in table if indexRange is undefined
-        if (!indexRange) {
-            let wrappedItems = await table.getAll();
-            items = (wrappedItems || []).map(itemUnwrapper);
-        } else {
-            let index = table.index(indexRange.indexName);
-            let cursor = await index.openCursor(indexRange2DBKey(indexRange));
-            while (cursor) {
-                items.push(itemUnwrapper(cursor.value));
-                cursor = await cursor.continue();
+    if (db) {
+        try {
+            let items: any[] = [];
+            if (!db.objectStoreNames.contains(tableName)) {
+                // Do nothing if table does not exist.
+            } else {
+                const trans = db.transaction(tableName, 'readonly');
+                const table = trans.objectStore(tableName);
+                // Get all items in table if indexRange is undefined
+                if (!indexRange) {
+                    let wrappedItems = await table.getAll();
+                    items = (wrappedItems || []).map(itemUnwrapper);
+                } else {
+                    let index = table.index(indexRange.indexName);
+                    let cursor = await index.openCursor(
+                        indexRange2DBKey(indexRange)
+                    );
+                    while (cursor) {
+                        var item = itemUnwrapper(cursor.value);
+                        item && items.push(item);
+                        cursor = await cursor.continue();
+                    }
+                }
             }
+            db.close();
+            return items;
+        } catch (e) {
+            db.close();
+            throw e;
         }
-        db.close();
-        return items;
-    } catch (e) {
-        db.close();
-        throw e;
+    } else {
+        return [];
     }
 }
 
@@ -395,16 +434,12 @@ export async function deleteItems(
     dbName: string,
     tableIndexRanges: TableIndexRange[]
 ) {
-    try {
-        const db = await openDB(dbName);
+    const db = await openDB(dbName);
+    if (db) {
         await deleteItemsFromDB(db, tableIndexRanges);
-    } catch (e) {
-        if (e.msg === FormattedResult.DB_NOT_FOUND.msg || e.msg === FormattedResult.TABLE_NOT_FOUND.msg) {
-            // If db or table does not exist, no need to deleteItems at all.
-            return;
-        } else {
-            throw e;
-        }
+    } else {
+        // If db does not exist, no need to deleteItems at all.
+        return;
     }
 }
 
