@@ -55,6 +55,3 @@ export function paramChecker(
         }
     }
 }
-export function deduplicateList(list: any[]) {
-    return Array.from(new Set(list));
-}

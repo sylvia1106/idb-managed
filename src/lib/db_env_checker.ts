@@ -12,9 +12,11 @@ export default function(): void {
         'IDBTransaction',
         'IDBIndex',
         'IDBCursor',
-        'IDBKeyRange'
+        'IDBKeyRange',
+        'IDBRequest'
     ]) {
-        if (!window.hasOwnProperty(property)) {
+        // @ts-ignore
+        if (!window.hasOwnProperty(property) || !window[property]) {
             throw new Error(`${property} is not supported in window`);
         }
     }
