@@ -1,9 +1,8 @@
 /**
  * @file Wrap idb APIs for idb-managed
  */
-// import { openDB as IDBOpenDB, deleteDB as IDBDeleteDB } from 'idb';
 // @ts-ignore
-import IDB from './lib/idb';
+import { IDB } from './lib/idb';
 import {
     IndexRange,
     ItemConfig,

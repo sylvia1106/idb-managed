@@ -44,10 +44,6 @@ module.exports = [
                 },
                 {
                     test: /\.js$/,
-                    include: [
-                        /node_modules\/idb/,
-                        /node_modules\/proxy-polyfill\/src\/proxy/
-                    ],
                     use: [
                         {
                             loader: 'babel-loader',

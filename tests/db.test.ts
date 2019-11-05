@@ -1,8 +1,6 @@
 /**
  * @file Tests for idb-managed
  */
-import IDBM from '../src/index';
-// Ready for faked IndexedDB environment.
 var fakeDB = require('fake-indexeddb');
 var fakeDBIndex = require('fake-indexeddb/lib/FDBIndex');
 var fakeDBKeyRange = require('fake-indexeddb/lib/FDBKeyRange');
@@ -11,6 +9,9 @@ var fakeObjectStore = require('fake-indexeddb/lib/FDBObjectStore');
 var fakeDBTransaction = require('fake-indexeddb/lib/FDBTransaction');
 var fakeIDBCursor = require('fake-indexeddb/lib/FDBCursor');
 var fakeIDBRequest = require('fake-indexeddb/lib/FDBRequest');
+// Ready for faked IndexedDB environment before IDBM is required.
+setDBInWindow();
+var IDBM = require('../src/index');
 const TEST_DB_NAME = 'TEST_DB';
 const DB_MANAGER_NAME = 'IDB_MANAGER_DB';
 const TEST_TABLE_1 = 'table1';
@@ -38,9 +39,6 @@ function clearDBFromWindow() {
     window.indexedDB = null;
 }
 describe('IndexedDB Env Test', () => {
-    afterAll(() => {
-        clearDBFromWindow();
-    });
     test('IndexedDB is supported', () => {
         setDBInWindow();
         expect(IDBM.idbIsSupported()).toBe(true);
@@ -48,6 +46,7 @@ describe('IndexedDB Env Test', () => {
     test('IndexedDB is not supported because no indexedDB exists', () => {
         clearDBFromWindow();
         expect(IDBM.idbIsSupported()).toBe(false);
+        setDBInWindow();
     });
 });
 describe('IDBM APIs Test', () => {
@@ -67,9 +66,6 @@ describe('IDBM APIs Test', () => {
         },
         dbVersion: 1,
         itemDuration: 5000
-    });
-    beforeAll(() => {
-        setDBInWindow();
     });
     afterAll(done => {
         const deleteReq1 = window.indexedDB.deleteDatabase(TEST_DB_NAME);

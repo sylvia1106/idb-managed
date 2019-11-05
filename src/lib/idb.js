@@ -1,3 +1,8 @@
+/**
+ * @file Codes in this file are based on https://raw.githubusercontent.com/jakearchibald/idb/v2.1.3/lib/idb.js, modified to check whether some db properties exist before proxy methods execute.
+ * @author Jake Archibald <jaffathecake@gmail.com>
+ * @modified by Sylvia
+ */
 function toArray(arr) {
     return Array.prototype.slice.call(arr);
 }
@@ -144,7 +149,7 @@ DB.prototype.transaction = function() {
 
 var exp;
 
-function checkPropertyNotSupportReason() {
+function idbIsSupported() {
     try {
         [
             'IDBIndex',
@@ -152,23 +157,18 @@ function checkPropertyNotSupportReason() {
             'IDBObjectStore',
             'IDBTransaction',
             'IDBDatabase'
-        ].forEach(function(item) {
-            if (window && !window[item]) {
-                throw new Error(item);
-            }
-            // 非window环境，比如service worker下
-            else if (!window && self && !self[item]) {
-                throw new Error(item);
+        ].forEach(function(property) {
+            if (window && (!window[property] || !window.hasOwnProperty(property))) {
+                throw new Error(property);
             }
         });
-        return '';
+        return true;
     } catch (e) {
-        return e.message;
+        return false;
     }
 }
 
-// 为了使下面用到相关属性的代码在加载时不致报错
-if (!checkPropertyNotSupportReason()) {
+if (idbIsSupported()) {
     proxyProperties(Index, '_index', [
         'name',
         'keyPath',
@@ -327,14 +327,15 @@ if (!checkPropertyNotSupportReason()) {
         }
     };
 } else {
+    var errorMsg = 'indexedDB is not supported';
     exp = {
-        open: function(name, version, upgradeCallback) {
-            return Promise.reject(new Error('PROPERTY_NOT_SUPPORT'));
+        open: function() {
+            return Promise.reject(new Error(errorMsg));
         },
-        delete: function(name) {
-            return Promise.reject(new Error('PROPERTY_NOT_SUPPORT'));
+        delete: function() {
+            return Promise.reject(new Error(errorMsg));
         }
     };
 }
 
-export default exp;
+module.exports = { IDB: exp };

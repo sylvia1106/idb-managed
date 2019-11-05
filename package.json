@@ -7,7 +7,7 @@
   "scripts": {
     "test": "jest --coverage",
     "start:dev": "webpack-dev-server",
-    "build": "rm -rf build && tsc",
+    "build": "rm -rf build && tsc && cp -r src/lib/*.js build/lib/",
     "demo": "rm -rf demo/js && webpack",
     "prepare": "npm run test && npm run build && npm run demo",
     "prepublish": "npm run prepare && standard-version"
@@ -46,10 +46,7 @@
     "webpack-cli": "^3.3.9",
     "webpack-dev-server": "^3.9.0"
   },
-  "dependencies": {
-    "idb": "^4.0.5",
-    "proxy-polyfill": "^0.3.0"
-  },
+  "dependencies": {},
   "browserslist": [
     "> 1%",
     "android >= 4.4",

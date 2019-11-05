@@ -16,7 +16,7 @@ import {
 export * from './interface';
 const DEFAULT_DB_VERSION: number = 1;
 const OPTIONAL = true;
-function _customDBConfigChecker(dbConfig: DBConfig): void {
+function customDBConfigChecker(dbConfig: DBConfig): void {
     paramChecker(
         dbConfig,
         ParamCheckerEnum.NotNullObject,
@@ -79,7 +79,7 @@ function _customDBConfigChecker(dbConfig: DBConfig): void {
     });
 }
 
-function _customDBAddItemsParamChecker(
+function customDBAddItemsParamChecker(
     items: ItemConfig[],
     tableListInDB: TableConfig[]
 ): void {
@@ -173,8 +173,8 @@ export class CustomDB {
     readonly tableList: TableConfig[];
     readonly itemDuration?: MiliSeconds;
     constructor(dbConfig: DBConfig) {
-        idbIsSupported();
-        _customDBConfigChecker(dbConfig);
+        dbEnvChecker();
+        customDBConfigChecker(dbConfig);
         this.name = dbConfig.dbName;
         this.version = optionWithBackup(dbConfig.dbVersion, DEFAULT_DB_VERSION);
         this.tableList = Object.keys(dbConfig.tables || {}).map(tableName => {
@@ -199,7 +199,7 @@ export class CustomDB {
                 return ofDB;
             }
         };
-        _customDBAddItemsParamChecker(itemConfigs, this.tableList);
+        customDBAddItemsParamChecker(itemConfigs, this.tableList);
         // Set backup itemDuration to each item
         const itemsWithDuration = itemConfigs.map(itemConfig => {
             const theTable: TableConfig = this.tableList.find(
