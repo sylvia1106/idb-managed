@@ -1,8 +1,9 @@
 {
     "compilerOptions": {
         "outDir": "build",
-        "target": "es6",
+        "target": "es5",
         "module": "commonjs",
+        // "moduleResolution": "node",
         "strict": true,
         "lib": ["es6", "dom"],
         "declaration": true

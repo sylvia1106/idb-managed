@@ -14,11 +14,7 @@
         <button onclick="deleteDB()">deleteDB</button>
         <button onclick="deleteItems()">deleteItems</button>
         <label style="display:block;margin-top:20px;">Result:</label>
-        <div
-            id="resultDisplay"
-            style="display:block;margin-top:20px;word-wrap: break-word;
-        word-break: break-all;white-space: pre-wrap;"
-        ></div>
+        <div id="resultDisplay" style="display:block;margin-top:20px;word-wrap:break-word;word-break: break-all;white-space: pre-wrap;"></div>
         <script type="text/javascript">
             window.addEventListener('error', function(e) {
                 document.getElementById('resultDisplay').innerHTML +=
@@ -40,8 +36,8 @@
                 'supported originally.' +
                 '\n';
         </script>
-        <script src="./js/idb-managed.js"></script>
-        <!-- <script>
+        <script type="text/javascript" src="./js/idb-managed.js"></script>
+        <script type="text/javascript">
             function consoleResult(ob) {
                 document.getElementById('resultDisplay').innerHTML +=
                     ob instanceof Error
@@ -172,6 +168,6 @@
                         consoleResult(e);
                     });
             }
-        </!-->
+        </script>
     </body>
 </html>

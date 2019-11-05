@@ -31,7 +31,17 @@ module.exports = [
                             loader: 'ts-loader'
                         }
                     ]
-                }
+                },
+                {
+                    test: /\.js$/,
+                    include: /node_modules/,
+                    use: [
+                        {
+                            loader: 'babel-loader'
+                        }
+                    ]
+                },
+
             ]
         },
         // plugins: [new BundleAnalyzerPlugin()],
@@ -40,6 +50,11 @@ module.exports = [
             contentBase: DEMO_PATH,
             publicPath: PUBLIC_PATH,
             open: true
-        }
+        },
+        // resolve: {
+        //     alias: {
+        //         idb: require.resolve('idb'),
+        //     }
+        // }
     }
 ];

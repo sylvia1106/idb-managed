@@ -1,7 +1,8 @@
 /**
  * @file Wrap idb APIs for idb-managed
  */
-import { openDB as IDBOpenDB, deleteDB as IDBDeleteDB } from 'idb';
+// @ts-ignore
+import { openDB as IDBOpenDB, deleteDB as IDBDeleteDB } from 'idb/build/cjs/index.js';
 import {
     IndexRange,
     ItemConfig,
@@ -119,7 +120,7 @@ async function unregisterDBInManager(dbName: string) {
 async function createDB(dbInfo: DB) {
     await registerDBInManager(dbInfo);
     const db = await IDBOpenDB(dbInfo.name, dbInfo.version as number, {
-        upgrade(upgradeDB, oldVersion, newVersion, transaction) {
+        upgrade(upgradeDB: any, oldVersion: number, newVersion: number, transaction: any) {
             upgradeDBWithTableList(
                 upgradeDB as any,
                 dbInfo.tableList,
@@ -133,7 +134,7 @@ async function createDB(dbInfo: DB) {
 async function openDBManager() {
     return await IDBOpenDB(IDB_MANAGER_DB_NAME, IDB_MANAGER_VERSION, {
         // In case DB Manager has not been created.
-        upgrade(upgradeDB) {
+        upgrade(upgradeDB: any) {
             upgradeDBManager(upgradeDB as any);
         }
     });
@@ -153,7 +154,7 @@ async function openDB(dbName: string) {
             dbAlreadyInManager.version as number,
             {
                 // In case this DB has not been created.
-                upgrade(upgradeDB, oldVersion, newVersion, transaction) {
+                upgrade(upgradeDB: any, oldVersion: number, newVersion: number, transaction: any) {
                     upgradeDBWithTableList(
                         upgradeDB as any,
                         dbAlreadyInManager.tableList || [],
