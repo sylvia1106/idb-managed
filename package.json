@@ -6,10 +6,11 @@
   "types": "./build/index.d.ts",
   "scripts": {
     "test": "jest --coverage",
+    "start:dev": "webpack-dev-server",
     "build": "rm -rf build && tsc",
     "demo": "rm -rf demo/src && webpack",
-    "start:dev": "webpack-dev-server",
-    "prepublish": "npm run build && npm run demo"
+    "prepare": "npm run test && npm run build && npm run demo",
+    "prepublish": "npm run prepare && standard-version"
   },
   "repository": {
     "type": "git",

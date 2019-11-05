@@ -174,13 +174,13 @@ export class CustomDB {
         this.version = optionWithBackup(dbConfig.dbVersion, DEFAULT_DB_VERSION);
         this.tableList = Object.keys(dbConfig.tables || {}).map(tableName => {
             return {
-                ...{ tableName: tableName },
+                tableName,
                 ...dbConfig.tables![tableName]
             };
         });
         this.itemDuration = dbConfig.itemDuration;
     }
-    async addItems(items: ItemConfig[]) {
+    async addItems(itemConfigs: ItemConfig[]) {
         const itemDurationOverrider = (
             ofDB: number | undefined,
             ofTable: number | undefined,
@@ -194,21 +194,19 @@ export class CustomDB {
                 return ofDB;
             }
         };
-        _customDBAddItemsParamChecker(items, this.tableList);
+        _customDBAddItemsParamChecker(itemConfigs, this.tableList);
         // Set backup itemDuration to each item
-        const itemsWithDuration = items.map(item => {
+        const itemsWithDuration = itemConfigs.map(itemConfig => {
             const theTable: TableConfig = this.tableList.find(
-                table => table.tableName === item.tableName
+                table => table.tableName === itemConfig.tableName
             ) as TableConfig;
             return {
-                ...{
-                    itemDuration: itemDurationOverrider(
-                        this.itemDuration,
-                        theTable.itemDuration,
-                        item.itemDuration
-                    )
-                },
-                ...item
+                itemDuration: itemDurationOverrider(
+                    this.itemDuration,
+                    theTable.itemDuration,
+                    itemConfig.itemDuration
+                ),
+                ...itemConfig
             };
         });
         await DBWrapper.addItems(

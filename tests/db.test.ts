@@ -1,5 +1,7 @@
+/**
+ * @file Tests for idb-managed
+ */
 import IDBM from '../src/index';
-import { CustomDB } from '../src/index';
 // Ready for faked IndexedDB environment.
 var fakeDB = require('fake-indexeddb');
 var fakeDBIndex = require('fake-indexeddb/lib/FDBIndex');
@@ -162,4 +164,3 @@ describe('IDBM APIs Test', () => {
         }, 2000);
     });
 });
-describe('IDMB Boundary Conditions Test', () => {});

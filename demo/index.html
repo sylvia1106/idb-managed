@@ -13,19 +13,54 @@
         <button onclick="getItems()">getItems</button>
         <button onclick="deleteDB()">deleteDB</button>
         <button onclick="deleteItems()">deleteItems</button>
+        <label style="display:block;margin-top:20px;">Result:</label>
+        <div
+            id="resultDisplay"
+            style="display:block;margin-top:20px;word-wrap: break-word;
+        word-break: break-all;white-space: pre-wrap;"
+        ></div>
+        <script type="text/javascript">
+            window.addEventListener('error', function(e) {
+                document.getElementById('resultDisplay').innerHTML +=
+                    'Error!' +
+                    e.message +
+                    ' ' +
+                    e.lineno +
+                    ':' +
+                    e.colno +
+                    ' ' +
+                    e.filename +
+                    ' ' +
+                    e.error +
+                    '<br>';
+            });
+            document.getElementById('resultDisplay').innerHTML +=
+                'Promise is ' +
+                (window.Promise ? '' : 'not ') +
+                'supported originally.' +
+                '\n';
+        </script>
         <script src="./js/idb-managed.js"></script>
-        <script>
-            console.log(IDBM.idbIsSupported());
-            const db = new IDBM.CustomDB({
+        <!-- <script>
+            function consoleResult(ob) {
+                document.getElementById('resultDisplay').innerHTML +=
+                    ob instanceof Error
+                        ? 'Error!' + (ob.message || ob.stack)
+                        : (typeof ob === 'object' ? JSON.stringify(ob) : ob) +
+                          '\n';
+            }
+            consoleResult('indexedDB supported: ' + IDBM.idbIsSupported());
+            var db = new IDBM.CustomDB({
                 dbName: 'DEMO_DB',
                 tables: {
                     table1: {
                         primaryKey: 'key1',
-                        // indexList: [],
-                        indexList: [{
-                            indexName: 'value1',
-                            unique: true
-                        }],
+                        indexList: [
+                            {
+                                indexName: 'value1',
+                                unique: true
+                            }
+                        ],
                         itemDuration: 3000
                     },
                     table2: {
@@ -36,55 +71,59 @@
                         indexList: []
                     }
                 },
-                dbVersion: 2,
+                dbVersion: 1,
                 itemDuration: 5000
             });
             function addItems() {
-                return db.addItems([
-                    {
-                        tableName: 'table1',
-                        item: { key1: 'xixi', value1: new Date().getSeconds() },
-                        itemDuration: 1000
-                    },
-                    {
-                        tableName: 'table1',
-                        item: { key1: 'haha', value1: '2' },
-                        itemDuration: 1000 * 3600
-                    },
-                    {
-                        tableName: 'table2',
-                        item: { key2: 'xiuxiu', value2: 'lala' }
-                    },
-                    {
-                        tableName: 'table3',
-                        item: { value: new Date().getSeconds()},
-                        itemDuration: 10 * 1000
-                    }
-                ])
-                    .then(ob => {
-                        console.log(ob);
+                return db
+                    .addItems([
+                        {
+                            tableName: 'table1',
+                            item: {
+                                key1: 'xixi',
+                                value1: new Date().getSeconds()
+                            },
+                            itemDuration: 1000
+                        },
+                        {
+                            tableName: 'table1',
+                            item: { key1: 'haha', value1: '2' },
+                            itemDuration: 1000 * 3600
+                        },
+                        {
+                            tableName: 'table2',
+                            item: { key2: 'xiuxiu', value2: 'lala' }
+                        },
+                        {
+                            tableName: 'table3',
+                            item: { value: new Date().getSeconds() },
+                            itemDuration: 10 * 1000
+                        }
+                    ])
+                    .then(function(ob) {
+                        consoleResult(ob);
                     })
-                    .catch(e => {
-                        console.log(e);
+                    .catch(function(e) {
+                        consoleResult(e);
                     });
             }
             function addItemsParallel() {
-                for (let i = 0; i < 10; i++) {
+                for (var i = 0; i < 10; i++) {
                     db.addItems([
                         {
-                            tableName: 'table1',
-                            item: { key1: 'key' + i, value1: 'value' + i}
+                            tableName: 'table3',
+                            item: { value1: 'value' + i }
                         }
                     ]);
                 }
             }
             function getItem() {
                 db.getItem('table1', 'xixi')
-                    .then(ob => {
-                        console.log(ob);
+                    .then(function(ob) {
+                        consoleResult(ob);
                     })
-                    .catch(e => {
-                        console.log(e);
+                    .catch(function(e) {
+                        consoleResult(e);
                     });
             }
             function getItems() {
@@ -94,48 +133,45 @@
                         indexName: 'id',
                         upperIndex: '2',
                         lowerExclusive: true,
-                        upperExclusive: true,
+                        upperExclusive: true
                     }
                 })
-                    .then(ob => {
-                        console.log(ob);
+                    .then(function(ob) {
+                        consoleResult(ob);
                     })
-                    .catch(e => {
-                        console.log(e);
+                    .catch(function(e) {
+                        consoleResult(e);
                     });
             }
             function deleteItems() {
-                // addItems()
-                //     .then(() => {
-                        db.deleteItemsInRange([
-                            {
-                                tableName: 'table1',
-                                indexRange: {
-                                    indexName: 'key1',
-                                    lowerIndex: 'key6'
-                                }
-                            },
-                            {
-                                tableName: 'table3'
-                            }
-                        ])
-                        .then(ob => {
-                            console.log(ob);
-                        })
-                        .catch(e => {
-                            console.log(e);
-                        });
-                    // })
+                db.deleteItemsInRange([
+                    {
+                        tableName: 'table1',
+                        indexRange: {
+                            indexName: 'key1',
+                            lowerIndex: 'key6'
+                        }
+                    },
+                    {
+                        tableName: 'table3'
+                    }
+                ])
+                    .then(function(ob) {
+                        consoleResult(ob);
+                    })
+                    .catch(function(e) {
+                        consoleResult(e);
+                    });
             }
             function deleteDB() {
                 IDBM.deleteDB('DEMO_DB')
-                    .then(ob => {
-                        console.log(ob);
+                    .then(function(ob) {
+                        consoleResult(ob);
                     })
-                    .catch(e => {
-                        console.log(e);
+                    .catch(function(e) {
+                        consoleResult(e);
                     });
             }
-        </script>
+        </!-->
     </body>
 </html>

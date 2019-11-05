@@ -5,7 +5,12 @@
         "module": "commonjs",
         "strict": true,
         "lib": ["es6", "dom"],
-        "skipLibCheck": true,
         "declaration": true
-    }
+    },
+    "include": [
+        "src/**/*"
+    ],
+    "exclude": [
+        "src/tests/**/*"
+    ]
 }

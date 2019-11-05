@@ -54,13 +54,11 @@ function itemWrapper(itemConfig: ItemConfig): ItemInTable {
     const currentTime = Date.now();
     return {
         ...itemConfig.item,
-        ...{
-            [UPDATETIME_KEYNAME]: currentTime,
-            [EXPIRETIME_KEYNAME]:
-                itemConfig.itemDuration !== undefined
-                    ? itemConfig.itemDuration + currentTime
-                    : -1
-        }
+        [UPDATETIME_KEYNAME]: currentTime,
+        [EXPIRETIME_KEYNAME]:
+            itemConfig.itemDuration !== undefined
+                ? itemConfig.itemDuration + currentTime
+                : -1
     };
 }
 
@@ -83,11 +81,8 @@ async function registerDBInManager(dbInfo: DB) {
         IDB_MANAGER_DB_TABLE_NAME,
         dbInfo.name
     )) as any) as ItemInDBManager;
-    if (dbAlreadyInManager && dbInfo.version <= dbAlreadyInManager.version) {
-        // No need to register
-        return;
-    } else {
-        // update db in manager
+    if (!dbAlreadyInManager || dbInfo.version > dbAlreadyInManager.version) {
+        // Update db in manager
         const addDBTrans = dbManager.transaction(
             IDB_MANAGER_DB_TABLE_NAME,
             'readwrite'
@@ -234,7 +229,7 @@ function upgradeDBWithTableList(
                 const tableToCreate = upgradeDB.createObjectStore(
                     tableConfig.tableName as string,
                     {
-                        ...{ keyPath: tablePrimaryKey },
+                        keyPath: tablePrimaryKey,
                         ...(tablePrimaryKey === 'id'
                             ? { autoIncrement: true }
                             : {})
@@ -273,6 +268,27 @@ function upgradeDBWithTableList(
     }
 }
 
+async function atomicTrans(transaction: any, db: any, tryStatement: Function) {
+    try {
+        await tryStatement();
+    } catch (transError) {
+        // Abort transaction manually to keep it atomic.
+        try {
+            transaction.abort();
+        } catch (e) {
+            // Do nothing if transaction abort failed.
+        }
+        try {
+            // Catch the Promise error caused by transaction abortion
+            await transaction.done;
+        } catch (e) {
+            throw transError;
+        }
+    } finally {
+        db.close();
+    }
+}
+
 async function deleteItemsFromDB(db: any, tableIndexRanges: TableIndexRange[]) {
     const validRanges = tableIndexRanges.filter(indexRange => {
         return db.objectStoreNames.contains(indexRange.tableName);
@@ -281,7 +297,7 @@ async function deleteItemsFromDB(db: any, tableIndexRanges: TableIndexRange[]) {
         new Set(validRanges.map(tableIndexRange => tableIndexRange.tableName))
     );
     const deleteItemsTrans = db.transaction(dedupTableNameList, 'readwrite');
-    try {
+    await atomicTrans(deleteItemsTrans, db, async () => {
         for (const tableIndexRange of validRanges) {
             const { tableName, indexRange } = tableIndexRange;
             const table = deleteItemsTrans.objectStore(tableName);
@@ -299,22 +315,7 @@ async function deleteItemsFromDB(db: any, tableIndexRanges: TableIndexRange[]) {
             }
         }
         await deleteItemsTrans.done;
-        db.close();
-    } catch (errMsg) {
-        db.close();
-        // Abort transaction manually to keep deleteItems operation atomic.
-        try {
-            deleteItemsTrans.abort();
-        } catch (e) {
-            // Do nothing if transaction abort failed.
-        }
-        try {
-            // Catch the Promise error caused by transaction abortion
-            await deleteItemsTrans.done;
-        } catch (e) {
-            throw errMsg;
-        }
-    }
+    });
 }
 
 export async function addItems(dbInfo: DB, items: ItemConfig[]) {
@@ -336,28 +337,13 @@ export async function addItems(dbInfo: DB, items: ItemConfig[]) {
     );
     const db = await createDB(dbInfo);
     const addItemsTrans = db.transaction(dedupTableNameList, 'readwrite');
-    try {
+    await atomicTrans(addItemsTrans, db, async () => {
         items.forEach(item => {
             const table = addItemsTrans.objectStore(item.tableName);
             table.put(itemWrapper(item));
         });
         await addItemsTrans.done;
-        db.close();
-    } catch (errMsg) {
-        db.close();
-        // Abort transaction manually to keep addItems operation atomic.
-        try {
-            addItemsTrans.abort();
-        } catch (e) {
-            // Do nothing if transaction abort failed.
-        }
-        try {
-            // Catch the Promise error caused by transaction abortion.
-            await addItemsTrans.done;
-        } catch (e) {
-            throw errMsg;
-        }
-    }
+    });
 }
 
 export async function getItem(
@@ -373,11 +359,11 @@ export async function getItem(
                 tableName,
                 primaryKeyValue
             );
-            db.close();
             return item;
         } catch (e) {
-            db.close();
             throw e;
+        } finally {
+            db.close();
         }
     } else {
         return null;
@@ -414,11 +400,11 @@ export async function getItemsInRange(
                     }
                 }
             }
-            db.close();
             return items;
         } catch (e) {
-            db.close();
             throw e;
+        } finally {
+            db.close();
         }
     } else {
         return [];
