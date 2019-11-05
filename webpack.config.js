@@ -1,10 +1,13 @@
 var path = require('path');
-const STATIC_JS = 'js'
-const PUBLIC_PATH = '/' + STATIC_JS + '/'
-const DEMO_PATH = './demo'
+const STATIC_JS = 'js';
+const PUBLIC_PATH = '/' + STATIC_JS + '/';
+const DEMO_PATH = './demo';
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer')
     .BundleAnalyzerPlugin;
-
+const babelOptions = {
+    presets: [['@babel/preset-env', { modules: 'commonjs' }]],
+    plugins: [['@babel/plugin-transform-runtime', { corejs: 3 }]]
+};
 module.exports = [
     {
         mode: 'development',
@@ -21,27 +24,37 @@ module.exports = [
         resolve: {
             extensions: ['.ts', '.js']
         },
+        // devtool: 'source-map',
         module: {
             rules: [
                 {
                     test: /\.ts$/,
-                    exclude: /node_modules/,
                     use: [
                         {
-                            loader: 'ts-loader'
+                            loader: 'babel-loader',
+                            options: babelOptions
+                        },
+                        {
+                            loader: 'ts-loader',
+                            options: {
+                                configFile: 'tsconfig.webpack.json'
+                            }
                         }
                     ]
                 },
                 {
                     test: /\.js$/,
-                    include: /node_modules/,
+                    include: [
+                        /node_modules\/idb/,
+                        /node_modules\/proxy-polyfill\/src\/proxy/
+                    ],
                     use: [
                         {
-                            loader: 'babel-loader'
+                            loader: 'babel-loader',
+                            options: babelOptions
                         }
                     ]
-                },
-
+                }
             ]
         },
         // plugins: [new BundleAnalyzerPlugin()],
@@ -50,7 +63,7 @@ module.exports = [
             contentBase: DEMO_PATH,
             publicPath: PUBLIC_PATH,
             open: true
-        },
+        }
         // resolve: {
         //     alias: {
         //         idb: require.resolve('idb'),

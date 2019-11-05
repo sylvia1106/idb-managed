@@ -1,8 +1,7 @@
 /**
  * @file Wrap idb APIs for idb-managed
  */
-// @ts-ignore
-import { openDB as IDBOpenDB, deleteDB as IDBDeleteDB } from 'idb/build/cjs/index.js';
+import { openDB as IDBOpenDB, deleteDB as IDBDeleteDB } from 'idb';
 import {
     IndexRange,
     ItemConfig,

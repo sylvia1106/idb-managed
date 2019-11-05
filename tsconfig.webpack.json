@@ -1,8 +1,9 @@
 {
     "compilerOptions": {
         "outDir": "build",
-        "target": "es5",
-        "module": "commonjs",
+        "target": "es2015",
+        "module": "esnext",
+        "moduleResolution": "node",
         "strict": true,
         "lib": ["es6", "dom"],
         "declaration": true

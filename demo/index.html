@@ -39,6 +39,7 @@
         <script type="text/javascript" src="./js/idb-managed.js"></script>
         <script type="text/javascript">
             function consoleResult(ob) {
+                console.log(ob);
                 document.getElementById('resultDisplay').innerHTML +=
                     ob instanceof Error
                         ? 'Error!' + (ob.message || ob.stack)
