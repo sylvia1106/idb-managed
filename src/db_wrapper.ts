@@ -1,7 +1,9 @@
 /**
  * @file Wrap idb APIs for idb-managed
  */
-import { openDB as IDBOpenDB, deleteDB as IDBDeleteDB } from 'idb';
+// import { openDB as IDBOpenDB, deleteDB as IDBDeleteDB } from 'idb';
+// @ts-ignore
+import IDB from './lib/idb';
 import {
     IndexRange,
     ItemConfig,
@@ -118,25 +120,25 @@ async function unregisterDBInManager(dbName: string) {
 
 async function createDB(dbInfo: DB) {
     await registerDBInManager(dbInfo);
-    const db = await IDBOpenDB(dbInfo.name, dbInfo.version as number, {
-        upgrade(upgradeDB: any, oldVersion: number, newVersion: number, transaction: any) {
-            upgradeDBWithTableList(
-                upgradeDB as any,
-                dbInfo.tableList,
-                transaction
-            );
+    const db = await IDB.open(
+        dbInfo.name,
+        dbInfo.version as number,
+        (upgradeDB: any) => {
+            upgradeDBWithTableList(upgradeDB as any, dbInfo.tableList);
         }
-    });
+    );
     return db;
 }
 
 async function openDBManager() {
-    return await IDBOpenDB(IDB_MANAGER_DB_NAME, IDB_MANAGER_VERSION, {
+    return await IDB.open(
+        IDB_MANAGER_DB_NAME,
+        IDB_MANAGER_VERSION,
         // In case DB Manager has not been created.
-        upgrade(upgradeDB: any) {
+        (upgradeDB: any) => {
             upgradeDBManager(upgradeDB as any);
         }
-    });
+    );
 }
 
 async function openDB(dbName: string) {
@@ -148,18 +150,15 @@ async function openDB(dbName: string) {
     )) as any) as ItemInDBManager | null;
     dbManager.close();
     if (dbAlreadyInManager) {
-        const db = await IDBOpenDB(
+        const db = await IDB.open(
             dbAlreadyInManager.dbName,
             dbAlreadyInManager.version as number,
-            {
-                // In case this DB has not been created.
-                upgrade(upgradeDB: any, oldVersion: number, newVersion: number, transaction: any) {
-                    upgradeDBWithTableList(
-                        upgradeDB as any,
-                        dbAlreadyInManager.tableList || [],
-                        transaction
-                    );
-                }
+            // In case this DB has not been created.
+            (upgradeDB: any) => {
+                upgradeDBWithTableList(
+                    upgradeDB as any,
+                    dbAlreadyInManager.tableList || []
+                );
             }
         );
         return db;
@@ -193,8 +192,7 @@ function upgradeDBManager(upgradeDB: IDBDatabase) {
 
 function upgradeDBWithTableList(
     upgradeDB: IDBDatabase,
-    tableList: TableConfig[],
-    transaction: any
+    tableList: TableConfig[]
 ) {
     try {
         tableList.forEach(tableConfig => {
@@ -204,9 +202,9 @@ function upgradeDBWithTableList(
                     tableConfig.tableName as string
                 )
             ) {
-                const currentTable = transaction.objectStore(
-                    tableConfig.tableName
-                );
+                const currentTable = upgradeDB
+                    .transaction(tableConfig.tableName as string)
+                    .objectStore(tableConfig.tableName as string);
                 // Create new index for present table.
                 (tableConfig.indexList || []).forEach(
                     (theIndex: IndexOfTable) => {
@@ -413,7 +411,7 @@ export async function getItemsInRange(
 
 export async function deleteDB(dbName: string) {
     await unregisterDBInManager(dbName);
-    await IDBDeleteDB(dbName);
+    await IDB.delete(dbName);
 }
 
 export async function deleteItems(
