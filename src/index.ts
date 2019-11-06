@@ -1,8 +1,3 @@
-// @ts-ignore
-// if (!window.Proxy) {
-// // @ts-ignore
-//     window.Proxy = require('proxy-polyfill/src/proxy')();
-// }
 import dbEnvChecker from './lib/db_env_checker';
 import DBWrapper from './db_wrapper';
 import { ParamCheckerEnum, paramChecker, optionWithBackup } from './lib/utils';

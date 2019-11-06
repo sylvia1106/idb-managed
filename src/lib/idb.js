@@ -1,7 +1,6 @@
 /**
  * @file Codes in this file are based on https://raw.githubusercontent.com/jakearchibald/idb/v2.1.3/lib/idb.js, modified to check whether some db properties exist before proxy methods execute.
- * @author Jake Archibald <jaffathecake@gmail.com>
- * @modified by Sylvia
+ * 
  */
 function toArray(arr) {
     return Array.prototype.slice.call(arr);

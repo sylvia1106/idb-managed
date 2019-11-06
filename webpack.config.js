@@ -5,7 +5,11 @@ const DEMO_PATH = './demo';
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer')
     .BundleAnalyzerPlugin;
 const babelOptions = {
-    presets: [['@babel/preset-env', { modules: 'commonjs' }]],
+    presets: [['@babel/preset-env', {
+                'exclude': [
+                    '@babel/plugin-transform-typeof-symbol',
+                ]
+            }]],
     plugins: [['@babel/plugin-transform-runtime', { corejs: 3 }]]
 };
 module.exports = [
@@ -41,15 +45,6 @@ module.exports = [
                             }
                         }
                     ]
-                },
-                {
-                    test: /\.js$/,
-                    use: [
-                        {
-                            loader: 'babel-loader',
-                            options: babelOptions
-                        }
-                    ]
                 }
             ]
         },
@@ -60,10 +55,5 @@ module.exports = [
             publicPath: PUBLIC_PATH,
             open: true
         }
-        // resolve: {
-        //     alias: {
-        //         idb: require.resolve('idb'),
-        //     }
-        // }
     }
 ];
