@@ -92,9 +92,7 @@ function customDBAddItemsParamChecker(
             "item's itemDuration",
             OPTIONAL
         );
-        const theTable = tableListInDB.find(
-            table => table.tableName === itemOfTable.tableName
-        );
+        const theTable = tableListInDB.filter(table => table.tableName === itemOfTable.tableName)[0];
         if (!theTable) {
             throw `Table ${itemOfTable.tableName} does not exist`;
         } else if (

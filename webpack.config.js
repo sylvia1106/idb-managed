@@ -5,11 +5,14 @@ const DEMO_PATH = './demo';
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer')
     .BundleAnalyzerPlugin;
 const babelOptions = {
-    presets: [['@babel/preset-env', {
-                'exclude': [
-                    '@babel/plugin-transform-typeof-symbol',
-                ]
-            }]],
+    presets: [
+        [
+            '@babel/preset-env',
+            {
+                exclude: ['@babel/plugin-transform-typeof-symbol']
+            }
+        ]
+    ],
     plugins: [['@babel/plugin-transform-runtime', { corejs: 3 }]]
 };
 module.exports = [

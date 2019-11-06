@@ -7,8 +7,8 @@
   "scripts": {
     "test": "jest --coverage",
     "start:dev": "webpack-dev-server",
-    "build": "rm -rf build && tsc && cp -r src/lib/*.js build/lib/",
     "demo": "rm -rf demo/js && webpack",
+    "build": "rm -rf build && tsc && cp -r src/lib/*.js build/lib/",
     "allready": "npm run test && npm run build && npm run demo",
     "publish:beta": "npm run allready && standard-version --prerelease beta && npm publish --tag beta",
     "publish:prod": "npm run allready && standard-version && git push --follow-tags origin master && npm publish"
@@ -29,8 +29,11 @@
   },
   "homepage": "https://github.com/sylvia1106/idb-managed#readme",
   "devDependencies": {
+    "@babel/cli": "^7.7.0",
+    "@babel/plugin-proposal-class-properties": "^7.7.0",
     "@babel/plugin-transform-runtime": "^7.6.2",
     "@babel/preset-env": "^7.7.0",
+    "@babel/preset-typescript": "^7.7.0",
     "@babel/runtime": "^7.7.0",
     "@babel/runtime-corejs2": "^7.7.1",
     "@babel/runtime-corejs3": "^7.7.0",
