@@ -11,6 +11,7 @@ import {
 export * from './interface';
 const DEFAULT_DB_VERSION: number = 1;
 const OPTIONAL = true;
+
 function customDBConfigChecker(dbConfig: DBConfig): void {
     paramChecker(
         dbConfig,
@@ -92,7 +93,9 @@ function customDBAddItemsParamChecker(
             "item's itemDuration",
             OPTIONAL
         );
-        const theTable = tableListInDB.filter(table => table.tableName === itemOfTable.tableName)[0];
+        const theTable = tableListInDB.filter(
+            table => table.tableName === itemOfTable.tableName
+        )[0];
         if (!theTable) {
             throw `Table ${itemOfTable.tableName} does not exist`;
         } else if (
@@ -160,6 +163,7 @@ export function idbIsSupported(): boolean {
         return false;
     }
 }
+
 export class CustomDB {
     readonly name: string;
     readonly version: number;
@@ -217,12 +221,11 @@ export class CustomDB {
         );
     }
     async getItem(tableName: string, primaryKeyValue: any) {
-        return await DBWrapper.getItem(this.name, tableName, primaryKeyValue);
+        return await getItemFromDB(this.name, tableName, primaryKeyValue);
     }
 
     async getItemsInRange(tableIndexRange: TableIndexRange) {
-        tableIndexRangeParamChecker(tableIndexRange);
-        return await DBWrapper.getItemsInRange(this.name, tableIndexRange);
+        return await getItemsInRangeFromDB(this.name, tableIndexRange);
     }
 
     async deleteItemsInRange(tableIndexRanges: TableIndexRange[]) {
@@ -244,8 +247,30 @@ export async function deleteDB(dbName: string) {
     paramChecker(dbName, ParamCheckerEnum.String, 'dbName', !OPTIONAL);
     await DBWrapper.deleteDB(dbName);
 }
+
+export async function getItemFromDB(
+    dbName: string,
+    tableName: string,
+    primaryKeyValue: any
+) {
+    paramChecker(dbName, ParamCheckerEnum.String, 'dbName', !OPTIONAL);
+    paramChecker(tableName, ParamCheckerEnum.String, 'tableName', !OPTIONAL);
+    return await DBWrapper.getItem(dbName, tableName, primaryKeyValue);
+}
+
+export async function getItemsInRangeFromDB(
+    dbName: string,
+    tableIndexRange: TableIndexRange
+) {
+    paramChecker(dbName, ParamCheckerEnum.String, 'dbName', !OPTIONAL);
+    tableIndexRangeParamChecker(tableIndexRange);
+    return await DBWrapper.getItemsInRange(dbName, tableIndexRange);
+}
+
 export default {
     idbIsSupported,
     CustomDB,
-    deleteDB
+    deleteDB,
+    getItemFromDB,
+    getItemsInRangeFromDB
 };

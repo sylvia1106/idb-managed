@@ -77,8 +77,8 @@
                         {
                             tableName: 'table1',
                             item: {
-                                key1: 'xixi',
-                                value1: new Date().getSeconds()
+                                key1: 'xixix',
+                                value1: 1
                             },
                             itemDuration: 1000
                         },
@@ -143,14 +143,14 @@
             function deleteItems() {
                 db.deleteItemsInRange([
                     {
-                        tableName: 'table1',
-                        indexRange: {
-                            indexName: 'key1',
-                            lowerIndex: 'key6'
-                        }
+                        tableName: 'table3'
                     },
                     {
-                        tableName: 'table3'
+                        tableName: 'table1',
+                        indexRange: {
+                            indexName: 'key',
+                            lowerIndex: 'key6'
+                        }
                     }
                 ])
                     .then(function(ob) {

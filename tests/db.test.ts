@@ -15,7 +15,9 @@ var IDBM = require('../src/index');
 const TEST_DB_NAME = 'TEST_DB';
 const DB_MANAGER_NAME = 'IDB_MANAGER_DB';
 const TEST_TABLE_1 = 'table1';
-const TEST_TABLE_PRIMARY_KEY = 'name';
+const TEST_TABLE_2 = 'table2';
+const TEST_TABLE1_PRIMARY_KEY = 'name';
+const TEST_TABLE2_PRIMARY_KEY = 'school';
 function setDBInWindow() {
     // @ts-ignore
     window.indexedDB = fakeDB;
@@ -38,7 +40,7 @@ function clearDBFromWindow() {
     // @ts-ignore
     window.indexedDB = null;
 }
-describe('IndexedDB Env Test', () => {
+describe('IndexedDB Env Tests', () => {
     test('IndexedDB is supported', () => {
         setDBInWindow();
         expect(IDBM.idbIsSupported()).toBe(true);
@@ -49,12 +51,12 @@ describe('IndexedDB Env Test', () => {
         setDBInWindow();
     });
 });
-describe('IDBM APIs Test', () => {
+describe('IDBM APIs Tests', () => {
     const DemoDB = new IDBM.CustomDB({
         dbName: TEST_DB_NAME,
         tables: {
-            table1: {
-                primaryKey: 'name',
+            [TEST_TABLE_1]: {
+                primaryKey: TEST_TABLE1_PRIMARY_KEY,
                 indexList: [
                     {
                         indexName: 'unionId',
@@ -81,12 +83,17 @@ describe('IDBM APIs Test', () => {
         const result = await DemoDB.addItems([
             {
                 tableName: TEST_TABLE_1,
-                item: { [TEST_TABLE_PRIMARY_KEY]: 'AAA', unionId: 'aaa' },
+                item: { [TEST_TABLE1_PRIMARY_KEY]: 'AAA', unionId: 'aaa' },
                 itemDuration: 1000 * 3600
             },
             {
                 tableName: TEST_TABLE_1,
-                item: { [TEST_TABLE_PRIMARY_KEY]: 'BBB', unionId: 'bbb' },
+                item: { [TEST_TABLE1_PRIMARY_KEY]: 'BBB', unionId: 'bbb' },
+                itemDuration: 1000 * 3600
+            },
+            {
+                tableName: TEST_TABLE_1,
+                item: { [TEST_TABLE1_PRIMARY_KEY]: 'CCC', unionId: 'ccc' },
                 itemDuration: 1000 * 3600
             }
         ]);
@@ -97,18 +104,35 @@ describe('IDBM APIs Test', () => {
         const result = await DemoDB.getItem(TEST_TABLE_1, 'AAA');
         expect(result!.unionId).toBe('aaa');
     });
+    test('getItemFromDB', async () => {
+        expect.assertions(1);
+        const result = await IDBM.getItemFromDB(
+            TEST_DB_NAME,
+            TEST_TABLE_1,
+            'AAA'
+        );
+        expect(result!.unionId).toBe('aaa');
+    });
     test('getItemsInRange', async () => {
         expect.assertions(2);
         const result = await DemoDB.getItemsInRange({
             tableName: TEST_TABLE_1,
             indexRange: {
-                indexName: TEST_TABLE_PRIMARY_KEY,
+                indexName: TEST_TABLE1_PRIMARY_KEY,
                 upperIndex: 'BBB',
                 upperExclusive: false
             }
         });
         expect(result.length).toBe(2);
         expect(result[1].unionId).toBe('bbb');
+    });
+    test('getAllItems', async () => {
+        expect.assertions(2);
+        const result = await DemoDB.getItemsInRange({
+            tableName: TEST_TABLE_1
+        });
+        expect(result.length).toBe(3);
+        expect(result[2].unionId).toBe('ccc');
     });
     test('deleteItem', async () => {
         expect.assertions(2);
@@ -125,7 +149,20 @@ describe('IDBM APIs Test', () => {
         const getItems = await DemoDB.getItemsInRange({
             tableName: TEST_TABLE_1
         });
-        expect(getItems.length).toBe(1);
+        expect(getItems.length).toBe(2);
+    });
+    test('deleteAllItems', async () => {
+        expect.assertions(2);
+        const deleteResult = await DemoDB.deleteItemsInRange([
+            {
+                tableName: TEST_TABLE_1
+            }
+        ]);
+        expect(deleteResult).toBe(undefined);
+        const getItems = await DemoDB.getItemsInRange({
+            tableName: TEST_TABLE_1
+        });
+        expect(getItems.length).toBe(0);
     });
     test('deleteDB', async () => {
         expect.assertions(2);
@@ -141,15 +178,16 @@ describe('IDBM APIs Test', () => {
         await DemoDB.addItems([
             {
                 tableName: TEST_TABLE_1,
-                item: { [TEST_TABLE_PRIMARY_KEY]: 'AAA', unionId: 'aaa' },
+                item: { [TEST_TABLE1_PRIMARY_KEY]: 'AAA', unionId: 'aaa' },
                 itemDuration: interval
             }
         ]);
         setTimeout(async () => {
+            expect.assertions(1);
             await DemoDB.addItems([
                 {
                     tableName: TEST_TABLE_1,
-                    item: { [TEST_TABLE_PRIMARY_KEY]: 'BBB', unionId: 'bbb' },
+                    item: { [TEST_TABLE1_PRIMARY_KEY]: 'BBB', unionId: 'bbb' },
                     itemDuration: interval
                 }
             ]);
@@ -158,5 +196,138 @@ describe('IDBM APIs Test', () => {
             });
             expect(itemsInTable.length).toBe(1);
         }, 2000);
+    });
+});
+describe('IDBM Exception Tests', () => {
+    const DB1_NAME = 'TEST_DB_1';
+    const DB2_NAME = 'TEST_DB_2';
+    const dbNameList = [DB1_NAME, DB2_NAME, DB_MANAGER_NAME];
+    function deleteRecursion(index: number, done: Function) {
+        const req = window.indexedDB.deleteDatabase(dbNameList[index]);
+        req.onsuccess = () => {
+            if (index < dbNameList.length - 1) {
+                deleteRecursion(index + 1, done);
+            } else {
+                done();
+            }
+        };
+    }
+    const DB1 = new IDBM.CustomDB({
+        dbName: DB1_NAME,
+        tables: {
+            [TEST_TABLE_1]: {
+                primaryKey: TEST_TABLE1_PRIMARY_KEY,
+                indexList: [
+                    {
+                        indexName: 'unionId',
+                        unique: true
+                    }
+                ],
+                itemDuration: 3000
+            },
+            [TEST_TABLE_2]: {
+                primaryKey: TEST_TABLE2_PRIMARY_KEY,
+                indexList: [
+                    {
+                        indexName: 'serialId',
+                        unique: true
+                    }
+                ]
+            }
+        },
+        dbVersion: 1,
+        itemDuration: 5000
+    });
+    afterEach(done => {
+        deleteRecursion(0, done);
+    });
+    test('Item does not have primaryKey when addItems', async () => {
+        expect.assertions(1);
+        try {
+            await DB1.addItems([
+                {
+                    tableName: TEST_TABLE_1,
+                    item: { unionId: 'aaa' }
+                }
+            ]);
+        } catch (e) {
+            expect(e).toBe('primaryKey is needed for item in table table1');
+        }
+    });
+    test('When unique index duplicates, check addItems is atomic', async () => {
+        expect.assertions(2);
+        try {
+            await DB1.addItems([
+                {
+                    tableName: TEST_TABLE_2,
+                    item: { [TEST_TABLE2_PRIMARY_KEY]: 'ABC', serialId: '123' }
+                },
+                {
+                    tableName: TEST_TABLE_1,
+                    item: { [TEST_TABLE1_PRIMARY_KEY]: 'AAA', unionId: 'aaa' }
+                },
+                {
+                    tableName: TEST_TABLE_1,
+                    item: { [TEST_TABLE1_PRIMARY_KEY]: 'BBB', unionId: 'aaa' }
+                }
+            ]);
+        } catch (e) {
+            expect(e).toBeInstanceOf(Error);
+        }
+        const result = await DB1.getItemsInRange({
+            tableName: TEST_TABLE_2
+        });
+        expect(result.length).toBe(0);
+    });
+    test('When deleteItems with wrong index, check deleteItems is atomic', async () => {
+        expect.assertions(2);
+        await DB1.addItems([
+            {
+                tableName: TEST_TABLE_2,
+                item: { [TEST_TABLE2_PRIMARY_KEY]: 'ABC', serialId: '123' }
+            },
+            {
+                tableName: TEST_TABLE_1,
+                item: { [TEST_TABLE1_PRIMARY_KEY]: 'AAA', unionId: 'aaa', noIndex: 'xxx' }
+            },
+            {
+                tableName: TEST_TABLE_1,
+                item: { [TEST_TABLE1_PRIMARY_KEY]: 'BBB', unionId: 'bbb', noIndex: 'yyy' }
+            }
+        ]);
+        try {
+            await DB1.deleteItemsInRange([
+                {
+                    tableName: TEST_TABLE_2
+                },
+                {
+                    tableName: TEST_TABLE_1,
+                    indexRange: {
+                        indexName: 'noIndex',
+                        lowerIndex: 'yyy'
+                    }
+                }
+            ])
+        } catch (e) {
+            expect(e).toBeInstanceOf(Error);
+        }
+        const result = await DB1.getItemsInRange({
+            tableName: TEST_TABLE_2
+        });
+        expect(result.length).toBe(1);
+    })
+    test('DB is not found when getItem', async () => {
+        const result = await IDBM.getItemFromDB('NO_DB', 'xxx', 'yyy');
+        expect(result).toBeNull();
+    });
+    test('Table is not found when getItem', async () => {
+        await DB1.addItems([
+            {
+                tableName: TEST_TABLE_2,
+                item: { [TEST_TABLE2_PRIMARY_KEY]: 'ABC', serialId: '123' }
+            }
+        ]);
+        const result = await IDBM.getItemFromDB(DB1_NAME, 'wrongTable', 'ABC');
+        expect(result).toBeNull();
     });
 });

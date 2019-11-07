@@ -13,9 +13,13 @@ export declare class CustomDB {
     deleteItemsInRange(tableIndexRanges: TableIndexRange[]): Promise<void>;
 }
 export declare function deleteDB(dbName: string): Promise<void>;
+export declare function getItemFromDB(dbName: string, tableName: string, primaryKeyValue: any): Promise<import("./interface").ItemInTable | null>;
+export declare function getItemsInRangeFromDB(dbName: string, tableIndexRange: TableIndexRange): Promise<any[]>;
 declare const _default: {
     idbIsSupported: typeof idbIsSupported;
     CustomDB: typeof CustomDB;
     deleteDB: typeof deleteDB;
+    getItemFromDB: typeof getItemFromDB;
+    getItemsInRangeFromDB: typeof getItemsInRangeFromDB;
 };
 export default _default;

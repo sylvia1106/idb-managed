@@ -27,4 +27,5 @@ export declare const ParamCheckerEnum: {
 export declare function isNonNegativeInteger(x: any): boolean;
 export declare function optionWithBackup(param: any, backup: any): any;
 export declare function paramChecker(param: any, checker: ParamChecker, paramName: string, optional: boolean): void;
+export declare function deduplicateList(list: any[]): any;
 export {};

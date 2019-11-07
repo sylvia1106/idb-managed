@@ -29,13 +29,9 @@
   },
   "homepage": "https://github.com/sylvia1106/idb-managed#readme",
   "devDependencies": {
-    "@babel/cli": "^7.7.0",
-    "@babel/plugin-proposal-class-properties": "^7.7.0",
     "@babel/plugin-transform-runtime": "^7.6.2",
     "@babel/preset-env": "^7.7.0",
-    "@babel/preset-typescript": "^7.7.0",
     "@babel/runtime": "^7.7.0",
-    "@babel/runtime-corejs2": "^7.7.1",
     "@babel/runtime-corejs3": "^7.7.0",
     "@types/jest": "^24.0.21",
     "babel-loader": "^8.0.6",
@@ -57,6 +53,7 @@
     "iOS >= 9"
   ],
   "files": [
-    "/build"
+    "/build",
+    "/src"
   ]
 }

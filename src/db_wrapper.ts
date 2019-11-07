@@ -3,6 +3,7 @@
  */
 // @ts-ignore
 import { IDB } from './lib/idb';
+import { deduplicateList } from './lib/utils'
 import {
     IndexRange,
     ItemConfig,
@@ -269,15 +270,14 @@ async function atomicTrans(transaction: any, db: any, tryStatement: Function) {
     try {
         await tryStatement();
     } catch (transError) {
-        // Abort transaction manually to keep it atomic.
         try {
-            transaction.abort();
+            transaction.abort()
         } catch (e) {
             // Do nothing if transaction abort failed.
         }
         try {
             // Catch the Promise error caused by transaction abortion
-            await transaction.done;
+            await transaction.complete;
         } catch (e) {
             throw transError;
         }
@@ -290,9 +290,7 @@ async function deleteItemsFromDB(db: any, tableIndexRanges: TableIndexRange[]) {
     const validRanges = tableIndexRanges.filter(indexRange => {
         return db.objectStoreNames.contains(indexRange.tableName);
     });
-    const dedupTableNameList: string[] = Array.from(
-        new Set(validRanges.map(tableIndexRange => tableIndexRange.tableName))
-    );
+    const dedupTableNameList: string[] = deduplicateList(validRanges.map(tableIndexRange => tableIndexRange.tableName))
     const deleteItemsTrans = db.transaction(dedupTableNameList, 'readwrite');
     await atomicTrans(deleteItemsTrans, db, async () => {
         for (const tableIndexRange of validRanges) {
@@ -311,14 +309,11 @@ async function deleteItemsFromDB(db: any, tableIndexRanges: TableIndexRange[]) {
                 }
             }
         }
-        await deleteItemsTrans.done;
     });
 }
 
 export async function addItems(dbInfo: DB, items: ItemConfig[]) {
-    const dedupTableNameList: string[] = Array.from(
-        new Set(items.map(item => item.tableName))
-    );
+    const dedupTableNameList: string[] = deduplicateList(items.map(item => item.tableName));
     await deleteItems(
         dbInfo.name,
         dedupTableNameList.map(tableName => {
@@ -335,11 +330,10 @@ export async function addItems(dbInfo: DB, items: ItemConfig[]) {
     const db = await createDB(dbInfo);
     const addItemsTrans = db.transaction(dedupTableNameList, 'readwrite');
     await atomicTrans(addItemsTrans, db, async () => {
-        items.forEach(item => {
+        for (const item of items) {
             const table = addItemsTrans.objectStore(item.tableName);
-            table.put(itemWrapper(item));
-        });
-        await addItemsTrans.done;
+            await table.put(itemWrapper(item));
+        }
     });
 }
 
