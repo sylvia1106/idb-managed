@@ -14,7 +14,10 @@
         <button onclick="deleteDB()">deleteDB</button>
         <button onclick="deleteItems()">deleteItems</button>
         <label style="display:block;margin-top:20px;">Result:</label>
-        <div id="resultDisplay" style="display:block;margin-top:20px;word-wrap:break-word;word-break: break-all;white-space: pre-wrap;"></div>
+        <div
+            id="resultDisplay"
+            style="display:block;margin-top:20px;word-wrap:break-word;word-break: break-all;white-space: pre-wrap;"
+        ></div>
         <script type="text/javascript">
             window.addEventListener('error', function(e) {
                 document.getElementById('resultDisplay').innerHTML +=
@@ -58,46 +61,32 @@
                                 unique: true
                             }
                         ],
-                        itemDuration: 3000
-                    },
-                    table2: {
-                        primaryKey: 'key2',
-                        indexList: []
+                        itemDuration: 3000 * 3600
                     },
                     table3: {
                         indexList: []
                     }
                 },
                 dbVersion: 1,
-                itemDuration: 5000
+                itemDuration: 5000 * 3600
             });
             function addItems() {
-                return db
-                    .addItems([
-                        {
-                            tableName: 'table1',
-                            item: {
-                                key1: 'xixix',
-                                value1: 1
-                            },
-                            itemDuration: 1000
+                db.addItems([
+                    {
+                        tableName: 'table1',
+                        item: {
+                            key1: 'xixix',
+                            value1: 1
                         },
-                        {
-                            tableName: 'table1',
-                            item: { key1: 'haha', value1: '2' },
-                            itemDuration: 1000 * 3600
-                        },
-                        {
-                            tableName: 'table2',
-                            item: { key2: 'xiuxiu', value2: 'lala' }
-                        },
-                        {
-                            tableName: 'table3',
-                            item: { value: new Date().getSeconds() },
-                            itemDuration: 10 * 1000
-                        }
-                    ])
-                    .then(function(ob) {
+                        itemDuration: 1000 * 3600
+                    }, {
+                        tableName: 'table1',
+                        item: { key1: 'haha', value1: '2' },
+                        itemDuration: 1000 * 3600
+                    }, {
+                        tableName: 'table3',
+                        item: { value1: 'value' + (+new Date())}
+                    }]).then(function(ob) {
                         consoleResult(ob);
                     })
                     .catch(function(e) {
@@ -111,11 +100,13 @@
                             tableName: 'table3',
                             item: { value1: 'value' + i }
                         }
-                    ]);
+                    ]).then(function(ob) {
+                        consoleResult(ob);
+                    });
                 }
             }
             function getItem() {
-                db.getItem('table1', 'xixi')
+                db.getItem('table1', 'xixix')
                     .then(function(ob) {
                         consoleResult(ob);
                     })
@@ -125,13 +116,16 @@
             }
             function getItems() {
                 db.getItemsInRange({
-                    tableName: 'table3',
-                    indexRange: {
-                        indexName: 'id',
-                        upperIndex: '2',
-                        lowerExclusive: true,
-                        upperExclusive: true
-                    }
+                    tableName: 'table1'
+                })
+                    .then(function(ob) {
+                        consoleResult(ob);
+                    })
+                    .catch(function(e) {
+                        consoleResult(e);
+                    });
+                db.getItemsInRange({
+                    tableName: 'table3'
                 })
                     .then(function(ob) {
                         consoleResult(ob);
@@ -146,11 +140,7 @@
                         tableName: 'table3'
                     },
                     {
-                        tableName: 'table1',
-                        indexRange: {
-                            indexName: 'key',
-                            lowerIndex: 'key6'
-                        }
+                        tableName: 'table1'
                     }
                 ])
                     .then(function(ob) {

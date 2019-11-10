@@ -3,7 +3,7 @@
  */
 // @ts-ignore
 import { IDB } from './lib/idb';
-import { deduplicateList } from './lib/utils'
+import { deduplicateList } from './lib/utils';
 import {
     IndexRange,
     ItemConfig,
@@ -313,7 +313,9 @@ async function deleteItemsFromDB(db: any, tableIndexRanges: TableIndexRange[]) {
 }
 
 export async function addItems(dbInfo: DB, items: ItemConfig[]) {
-    const dedupTableNameList: string[] = deduplicateList(items.map(item => item.tableName));
+    const dedupTableNameList: string[] = deduplicateList(
+        items.map(item => item.tableName)
+    );
     await deleteItems(
         dbInfo.name,
         dedupTableNameList.map(tableName => {
@@ -378,7 +380,11 @@ export async function getItemsInRange(
                 // Get all items in table if indexRange is undefined
                 if (!indexRange) {
                     let wrappedItems = await table.getAll();
-                    items = (wrappedItems || []).map(itemUnwrapper);
+                    items = (wrappedItems || [])
+                        .map(itemUnwrapper)
+                        .filter((item: any) => {
+                            return item !== null;
+                        });
                 } else {
                     let index = table.index(indexRange.indexName);
                     let cursor = await index.openCursor(

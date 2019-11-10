@@ -97,14 +97,14 @@ function customDBAddItemsParamChecker(
             table => table.tableName === itemOfTable.tableName
         )[0];
         if (!theTable) {
-            throw `Table ${itemOfTable.tableName} does not exist`;
+            throw new Error(`Table ${itemOfTable.tableName} does not exist`);
         } else if (
             theTable.primaryKey !== undefined &&
             Object.getOwnPropertyNames(itemOfTable.item).indexOf(
                 theTable.primaryKey
             ) < 0
         ) {
-            throw `primaryKey is needed for item in table ${itemOfTable.tableName}`;
+            throw new Error(`primaryKey is needed for item in table ${itemOfTable.tableName}`);
         }
     });
 }
@@ -131,8 +131,11 @@ function tableIndexRangeParamChecker(tableIndexRange: TableIndexRange): void {
     if (tableIndexRange.indexRange) {
         const {
             indexName,
+            onlyIndex,
+            lowerIndex,
+            upperIndex,
             lowerExclusive,
-            upperExclusive
+            upperExclusive,
         } = tableIndexRange.indexRange;
         paramChecker(
             indexName,
@@ -140,6 +143,12 @@ function tableIndexRangeParamChecker(tableIndexRange: TableIndexRange): void {
             "indexRange's indexName",
             !OPTIONAL
         );
+        if (onlyIndex === undefined && lowerIndex === undefined && upperIndex === undefined) {
+            throw new Error('indexRange should have bounds or value for the index')
+        } else if (lowerIndex !== undefined && upperIndex !== undefined && lowerIndex >= upperIndex) {
+            throw new Error('lowerIndex should be less than upperIndex')
+        } 
+        if (lowerIndex && upperIndex)
         paramChecker(
             lowerExclusive,
             ParamCheckerEnum.Boolean,
@@ -199,9 +208,9 @@ export class CustomDB {
         customDBAddItemsParamChecker(itemConfigs, this.tableList);
         // Set backup itemDuration to each item
         const itemsWithDuration = itemConfigs.map(itemConfig => {
-            const theTable: TableConfig = this.tableList.find(
+            const theTable: TableConfig = this.tableList.filter(
                 table => table.tableName === itemConfig.tableName
-            ) as TableConfig;
+            )[0] ;
             return {
                 itemDuration: itemDurationOverrider(
                     this.itemDuration,

@@ -198,6 +198,72 @@ describe('IDBM APIs Tests', () => {
         }, 2000);
     });
 });
+describe('Param Invalid Tests', () => {
+    const DB1_NAME = 'TEST_DB_1';
+    const dbNameList = [DB1_NAME, DB_MANAGER_NAME];
+    const DB1 = new IDBM.CustomDB({
+        dbName: DB1_NAME,
+        tables: {
+            [TEST_TABLE_1]: {
+                primaryKey: TEST_TABLE1_PRIMARY_KEY,
+                indexList: [
+                    {
+                        indexName: 'unionId',
+                        unique: true
+                    }
+                ],
+                itemDuration: 3000
+            }
+        },
+        dbVersion: 1,
+        itemDuration: 5000
+    });
+    function deleteRecursion(index: number, done: Function) {
+        const req = window.indexedDB.deleteDatabase(dbNameList[index]);
+        req.onsuccess = () => {
+            if (index < dbNameList.length - 1) {
+                deleteRecursion(index + 1, done);
+            } else {
+                done();
+            }
+        };
+    }
+    afterEach(done => {
+        deleteRecursion(0, done);
+    });
+    test('DB config is invalid', async () => {
+        try {
+            const DBInvalid = new IDBM.CustomDB({})
+        } catch (e) {
+            expect(e.message).toBe('dbName needs to be a string')
+        }
+    })
+    test('IndexRange param is not valid when getItemsInRange', async () => {
+        await DB1.addItems([
+            {
+                tableName: TEST_TABLE_1,
+                item: {
+                    [TEST_TABLE1_PRIMARY_KEY]: 'AAA',
+                    unionId: 'aaa',
+                    noIndex: 'xxx'
+                }
+            }
+        ]);
+        try {
+            await DB1.getItemsInRange({
+                tableName: TEST_TABLE_1,
+                indexRange: {
+                    indexName: TEST_TABLE1_PRIMARY_KEY
+                }
+            });
+        } catch (e) {
+            expect(e.message).toBe(
+                'indexRange should have bounds or value for the index'
+            );
+        }
+    });
+})
+
 describe('IDBM Exception Tests', () => {
     const DB1_NAME = 'TEST_DB_1';
     const DB2_NAME = 'TEST_DB_2';
@@ -251,7 +317,9 @@ describe('IDBM Exception Tests', () => {
                 }
             ]);
         } catch (e) {
-            expect(e).toBe('primaryKey is needed for item in table table1');
+            expect(e.message).toBe(
+                `primaryKey is needed for item in table ${TEST_TABLE_1}`
+            );
         }
     });
     test('When unique index duplicates, check addItems is atomic', async () => {
@@ -279,7 +347,7 @@ describe('IDBM Exception Tests', () => {
         });
         expect(result.length).toBe(0);
     });
-    test('When deleteItems with wrong index, check deleteItems is atomic', async () => {
+    test('When deleteItems with wrong index', async () => {
         expect.assertions(2);
         await DB1.addItems([
             {
@@ -288,11 +356,19 @@ describe('IDBM Exception Tests', () => {
             },
             {
                 tableName: TEST_TABLE_1,
-                item: { [TEST_TABLE1_PRIMARY_KEY]: 'AAA', unionId: 'aaa', noIndex: 'xxx' }
+                item: {
+                    [TEST_TABLE1_PRIMARY_KEY]: 'AAA',
+                    unionId: 'aaa',
+                    noIndex: 'xxx'
+                }
             },
             {
                 tableName: TEST_TABLE_1,
-                item: { [TEST_TABLE1_PRIMARY_KEY]: 'BBB', unionId: 'bbb', noIndex: 'yyy' }
+                item: {
+                    [TEST_TABLE1_PRIMARY_KEY]: 'BBB',
+                    unionId: 'bbb',
+                    noIndex: 'yyy'
+                }
             }
         ]);
         try {
@@ -307,7 +383,7 @@ describe('IDBM Exception Tests', () => {
                         lowerIndex: 'yyy'
                     }
                 }
-            ])
+            ]);
         } catch (e) {
             expect(e).toBeInstanceOf(Error);
         }
@@ -315,7 +391,7 @@ describe('IDBM Exception Tests', () => {
             tableName: TEST_TABLE_2
         });
         expect(result.length).toBe(1);
-    })
+    });
     test('DB is not found when getItem', async () => {
         const result = await IDBM.getItemFromDB('NO_DB', 'xxx', 'yyy');
         expect(result).toBeNull();
