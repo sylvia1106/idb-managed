@@ -214,3 +214,6 @@ await deleteDB('DEMO_DB');
 
 ```
 
+## License
+Contributions to idb-managed will be licensed under [MIT license](https://github.com/sylvia1106/idb-managed/LICENSE).
+
