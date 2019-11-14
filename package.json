@@ -1,7 +1,7 @@
 {
   "name": "idb-managed",
-  "version": "1.0.6-beta.7",
-  "description": "Easy API wrapper for IndexedDB, with DB manager to manage local DBs. Based on jakearchibald/idb.",
+  "version": "1.0.6",
+  "description": "Easy APIs for IndexedDB, with DB manager to manage local DBs. Based on idb.",
   "main": "./build/index.js",
   "types": "./build/index.d.ts",
   "scripts": {
