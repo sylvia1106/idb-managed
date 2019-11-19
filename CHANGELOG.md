@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.0.7](https://github.com/sylvia1106/idb-managed/compare/v1.0.6...v1.0.7) (2019-11-19)
+
+
+### Bug Fixes
+
+* babel is no need && modi demo ([97be6ac](https://github.com/sylvia1106/idb-managed/commit/97be6ace0aaf9a0296a5e2da4df7fa8b07f41d06))
+* idb.js export in cjs ([c6fbd31](https://github.com/sylvia1106/idb-managed/commit/c6fbd317b46edd3cb8ca8210fdd28cb9ac2c5c88))
+
 ### [1.0.6](https://github.com/sylvia1106/idb-managed/compare/v1.0.6-beta.7...v1.0.6) (2019-11-14)
 
 ### [1.0.6-beta.7](https://github.com/sylvia1106/idb-managed/compare/v1.0.6-beta.6...v1.0.6-beta.7) (2019-11-10)
