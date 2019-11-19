@@ -42,7 +42,6 @@
         </script>
         <script type="text/javascript" src="./js/idb-managed.js"></script>
         <script type="text/javascript">
-            window.Promise = null;
             function consoleResult(ob) {
                 console.log(ob);
                 document.getElementById('resultDisplay').innerHTML +=
@@ -100,14 +99,14 @@
                     });
             }
             function addItemsParallel() {
-                consoleResult('Parallel to addItems')
+                consoleResult('Parallel to addItems');
                 for (var i = 0; i < 10; i++) {
                     db.addItems([
                         {
                             tableName: 'table3',
                             item: { value1: 'value' + i }
                         }
-                    ])
+                    ]);
                 }
             }
             function getItem() {

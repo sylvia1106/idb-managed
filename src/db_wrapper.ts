@@ -9,7 +9,7 @@ import {
     IndexOfTable,
     TableIndexRange
 } from './interface';
-import IDB from './lib/idb';
+const IDB = require('./lib/idb');
 const IDB_MANAGER_VERSION = 1;
 const IDB_MANAGER_DB_NAME = 'IDB_MANAGER_DB';
 const IDB_MANAGER_DB_TABLE_NAME = 'IDB_MANAGER_STORE';

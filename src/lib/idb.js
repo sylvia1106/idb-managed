@@ -337,4 +337,4 @@ if (idbIsSupported()) {
     };
 }
 
-export default exp;
+module.exports = exp;
