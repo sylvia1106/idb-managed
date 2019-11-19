@@ -1,17 +1,15 @@
 /**
  * @file Wrap idb APIs for idb-managed
  */
-// @ts-ignore
-import { IDB } from './lib/idb';
 import { deduplicateList } from './lib/utils';
 import {
     IndexRange,
     ItemConfig,
-    ItemInTable,
     TableConfig,
     IndexOfTable,
     TableIndexRange
 } from './interface';
+import IDB from './lib/idb';
 const IDB_MANAGER_VERSION = 1;
 const IDB_MANAGER_DB_NAME = 'IDB_MANAGER_DB';
 const IDB_MANAGER_DB_TABLE_NAME = 'IDB_MANAGER_STORE';
@@ -22,6 +20,11 @@ interface ItemInDBManager {
     dbName: string;
     tableList: TableConfig[];
     version: number;
+}
+interface ItemInTable {
+    [key: string]: any;
+    expireTime: number;
+    updateTime: number;
 }
 interface DB {
     name: string;
@@ -101,7 +104,7 @@ async function registerDBInManager(dbInfo: DB) {
                 tableName: IDB_MANAGER_DB_TABLE_NAME
             })
         );
-        await addDBTrans.done;
+        await addDBTrans.complete;
         dbManager.close();
     }
 }
@@ -114,7 +117,7 @@ async function unregisterDBInManager(dbName: string) {
     );
     const table = deleteTrans.objectStore(IDB_MANAGER_DB_TABLE_NAME);
     table.delete(dbName);
-    await deleteTrans.done;
+    await deleteTrans.complete;
     dbManager.close();
 }
 
@@ -178,7 +181,7 @@ async function getItemFromDB(
         const itemInTable = ((await table.get(
             primaryKeyValue
         )) as any) as ItemInTable;
-        return itemUnwrapper(itemInTable);
+        return itemUnwrapper(itemInTable) as any;
     } else {
         return null;
     }

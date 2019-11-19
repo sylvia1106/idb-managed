@@ -1,12 +1,12 @@
 # 🎒 idb-managed
-Easy APIs for IndexedDB, with DB manager to manage local DBs. Based on idb.
+Easy IndexedDB API, using DB manager to manage local database. Based on [idb](https://github.com/jakearchibald/idb).
 
 ## Why do you need it?
-If you are familiar with IndexedDB API, you must be very troubled that almost every db operation relates to an opening of the database. So many params to fill, transactions to care, just to get some data from a single database.
+IndexedDB APIs are cumbersome that almost every db operation is related to an opening of the database. Even though you just want to get some data from a single database, you have to fill so many params and care about so many transactions.
 
-idb-managed can ease these troubles. 
+The idb-managed can save these troubles. 
 
-If you only what to get something from a database, the process is just like you withdraw your money from ATM. Which db, whick table and which item you want, that's all you need to provide. idb-managed will do the rest for you.
+If you want to get something from a database, you only need to provide the name of the database, the table and the item index, that's all. The idb-managed will do the rest for you.
 
 ## Getting Started
 Install logan-web using `npm`:
@@ -20,6 +20,9 @@ Or `yarn`:
 ```
 yarn add idb-managed
 ```
+
+## Environment Required
+idb-managed needs to run in a browser environment with native Promise implemented. You will need a Promise polyfill like es6-promise if your application needs to run in an older browser.
 
 ## A Simple Demo
 
@@ -40,7 +43,7 @@ Very easy, right?😁
 
 ## API
 ### 📚 idbIsSupported
-idb-managed is based on IndexedDB. This method helps to tell you whether current environment supports IndexedDB. Using other methods in idb-managed will throw error if this method returns false.
+idb-managed is based on IndexedDB. This method helps to tell you whether current environment supports IndexedDB. Using other methods in idb-managed will throw an error if this method returns false.
 
 ```js
 import { idbIsSupported } from 'idb-managed';
@@ -51,7 +54,7 @@ console.log('IndexedDB is supported: ' + idbIsSupported());
 
 ### 📚 CustomDB(dbConfig)
 
-You can define a CustomDB with specific database and table structures first, and do the db operations without complicated progress then. Here is the demo code:
+You can define a CustomDB with specific database and table structures first, and then perform the db operations without complicated process. Here is the demo code:
 
 ```js
 import { CustomDB } from 'idb-managed';
@@ -86,7 +89,7 @@ let db = new CustomDB({
 	* itemDuration(Optional): The duration time of items of all tables in this database. itemDuration in the table overides this.
 	* tables: tables of the database. Name of the table is the key.
 		* primaryKey(Optional): Name of the primary index, your item in this table must contain this property if defined.
-		* indexList(Optional): Indexes of this table. Index is used for IndexedDB to retrieve data quickly. You can get data in a range later if the index is defined.
+		* indexList(Optional): Indexes of this table. Index is used for IndexedDB to retrieve data quickly. You can get data within a centain range if the index is defined.
 			* indexName: Name of the index.
 			* unique: Whether value of this indexed property is unique. Adding two items with same value of this property will not success if this index is unique.
 		* itemDuration(Optional): The duration of items in this table. Expired items will be deleted during next add operation of this table. itemDuration in  the itemConfig overides this.
@@ -120,9 +123,9 @@ await db.addItems([
 ])
 
 ```
-addItems transaction is atomic, which means this transaction will roll back if any item failed to be add.
+addItems transaction is atomic, which means this transaction will roll back if any item failed to be added.
 
-* itemConfig: Info of the items to add.
+* itemConfig: The item's info.
 	* tableName: Name of the table you want to add the item into.
 	* item: The item you want to add.
 	* itemDuration(Optional): The duration of this item. Expired items will be deleted during next add operation of this table.
@@ -164,7 +167,7 @@ let studentInfos = await db.getItemsInRange({
 
 * indexRange(Optional): Range of the index. All items will be retrieved if indexRange is not defined.
 	* indexName: Name of this index.
-	* onlyIndex: Value of the index. Retrieve the items which index value equal to this value.
+	* onlyIndex: Value of the index. Retrieve the items which index value equals to this value.
 	* upperIndex: Upper value of the range. Retrieve the items which index value is less than ( or equal to if upperExclusive is false ) this value.
 	* lowerIndex: Lower value of the range. Retrieve the items which index value is greater than ( or equal to if lowerExclusive is false ) this value.
 	* upperExclusive: Default to be false.
@@ -186,10 +189,10 @@ await db.deleteItemsInRange({
 ```
 
 ### 📚 getItemFromDB(dbName, tableName, primaryKeyValue)
-`A Simple Demo` has already showed you how to use this method. You don't bother to define a DB first! This method will not cause openDB failed when you want to open the DB with different table structure next time.
+`A Simple Demo` has already shown you how to use this method. You don't need to define a DB first! This method will not cause openDB failed when you want to open the DB with different table structure next time.
 
 ### 📚 getItemsInRangeFromDB(dbName, tableIndexRange)
-Similar with getItemsInRange of CustomDB. Also, you don't bother to define a DB before using this method.
+Similar to getItemsInRange of CustomDB. Also, you don't have to define a DB before using this method.
 
 ```js
 import { getItemsInRangeFromDB } from 'idb-managed';

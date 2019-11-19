@@ -7,8 +7,8 @@
   "scripts": {
     "test": "jest --coverage",
     "start:dev": "webpack-dev-server",
-    "demo": "rm -rf demo/js && webpack",
     "build": "rm -rf build && tsc && cp -r src/lib/*.js build/lib/",
+    "demo": "npm run build && rm -rf demo/js && webpack",
     "allready": "npm run test && npm run build && npm run demo",
     "publish:beta": "npm run allready && standard-version --prerelease beta && npm publish --tag beta",
     "publish:prod": "npm run allready && standard-version && git push --follow-tags origin master && npm publish"
@@ -29,29 +29,19 @@
   },
   "homepage": "https://github.com/sylvia1106/idb-managed#readme",
   "devDependencies": {
-    "@babel/plugin-transform-runtime": "^7.6.2",
-    "@babel/preset-env": "^7.7.0",
-    "@babel/runtime": "^7.7.0",
-    "@babel/runtime-corejs3": "^7.7.0",
     "@types/jest": "^24.0.21",
-    "babel-loader": "^8.0.6",
     "fake-indexeddb": "^2.1.1",
     "jest": "^24.9.0",
     "standard-version": "^7.0.0",
     "ts-jest": "^24.1.0",
     "ts-loader": "^6.2.0",
-    "typescript": "^3.6.4",
+    "typescript": "^3.7.2",
     "webpack": "^4.41.2",
     "webpack-bundle-analyzer": "^3.6.0",
     "webpack-cli": "^3.3.9",
     "webpack-dev-server": "^3.9.0"
   },
   "dependencies": {},
-  "browserslist": [
-    "> 1%",
-    "android >= 4.4",
-    "iOS >= 9"
-  ],
   "files": [
     "/build",
     "/src"

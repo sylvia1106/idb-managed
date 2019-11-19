@@ -21,19 +21,12 @@ const TEST_TABLE2_PRIMARY_KEY = 'school';
 function setDBInWindow() {
     // @ts-ignore
     window.indexedDB = fakeDB;
-    // @ts-ignore
     window.IDBIndex = fakeDBIndex;
-    // @ts-ignore
     window.IDBKeyRange = fakeDBKeyRange;
-    // @ts-ignore
     window.IDBDatabase = fakeDBDataBase;
-    // @ts-ignore
     window.IDBObjectStore = fakeObjectStore;
-    // @ts-ignore
     window.IDBTransaction = fakeDBTransaction;
-    // @ts-ignore
     window.IDBCursor = fakeIDBCursor;
-    // @ts-ignore
     window.IDBRequest = fakeIDBRequest;
 }
 function clearDBFromWindow() {

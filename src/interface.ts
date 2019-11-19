@@ -1,11 +1,7 @@
 /**
  * @file export interfaces needed in idb-manager
  */
-export interface ItemInTable {
-    [key: string]: any;
-    expireTime: number;
-    updateTime: number;
-}
+
 export interface DBConfig {
     dbName: string;
     tables?: {

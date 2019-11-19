@@ -4,22 +4,11 @@ const PUBLIC_PATH = '/' + STATIC_JS + '/';
 const DEMO_PATH = './demo';
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer')
     .BundleAnalyzerPlugin;
-const babelOptions = {
-    presets: [
-        [
-            '@babel/preset-env',
-            {
-                exclude: ['@babel/plugin-transform-typeof-symbol']
-            }
-        ]
-    ],
-    plugins: [['@babel/plugin-transform-runtime', { corejs: 3 }]]
-};
 module.exports = [
     {
-        mode: 'development',
+        mode: 'production',
         entry: {
-            'idb-managed': ['./src/index.ts']
+            'idb-managed': ['./build/index.js']
         },
         output: {
             path: path.join(__dirname, DEMO_PATH, STATIC_JS),
@@ -31,25 +20,8 @@ module.exports = [
         resolve: {
             extensions: ['.ts', '.js']
         },
-        // devtool: 'source-map',
         module: {
-            rules: [
-                {
-                    test: /\.ts$/,
-                    use: [
-                        {
-                            loader: 'babel-loader',
-                            options: babelOptions
-                        },
-                        {
-                            loader: 'ts-loader',
-                            options: {
-                                configFile: 'tsconfig.webpack.json'
-                            }
-                        }
-                    ]
-                }
-            ]
+            rules: []
         },
         // plugins: [new BundleAnalyzerPlugin()],
         devServer: {

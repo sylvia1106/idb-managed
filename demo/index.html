@@ -7,16 +7,17 @@
         <title>Demo for idb-managed</title>
     </head>
     <body>
+        <div style="margin-bottom:10px;">Demo For idb-managed</div>
         <button onclick="addItems()">addItems</button>
         <button onclick="addItemsParallel()">addItemsParallel</button>
         <button onclick="getItem()">getItem</button>
         <button onclick="getItems()">getItems</button>
-        <button onclick="deleteDB()">deleteDB</button>
         <button onclick="deleteItems()">deleteItems</button>
-        <label style="display:block;margin-top:20px;">Result:</label>
+        <button onclick="deleteDB()">deleteDB</button>
+        <label style="display:block;margin-top:10px;">Result:</label>
         <div
             id="resultDisplay"
-            style="display:block;margin-top:20px;word-wrap:break-word;word-break: break-all;white-space: pre-wrap;"
+            style="margin-top:10px;word-wrap:break-word;word-break: break-all;white-space: pre-wrap;"
         ></div>
         <script type="text/javascript">
             window.addEventListener('error', function(e) {
@@ -41,6 +42,7 @@
         </script>
         <script type="text/javascript" src="./js/idb-managed.js"></script>
         <script type="text/javascript">
+            window.Promise = null;
             function consoleResult(ob) {
                 console.log(ob);
                 document.getElementById('resultDisplay').innerHTML +=
@@ -91,27 +93,27 @@
                     }
                 ])
                     .then(function(ob) {
-                        consoleResult(ob);
+                        consoleResult('Items added!');
                     })
                     .catch(function(e) {
                         consoleResult(e);
                     });
             }
             function addItemsParallel() {
+                consoleResult('Parallel to addItems')
                 for (var i = 0; i < 10; i++) {
                     db.addItems([
                         {
                             tableName: 'table3',
                             item: { value1: 'value' + i }
                         }
-                    ]).then(function(ob) {
-                        consoleResult(ob);
-                    });
+                    ])
                 }
             }
             function getItem() {
                 db.getItem('table1', 'xixix')
                     .then(function(ob) {
+                        consoleResult('Get xixix from table1:');
                         consoleResult(ob);
                     })
                     .catch(function(e) {
@@ -123,6 +125,7 @@
                     tableName: 'table1'
                 })
                     .then(function(ob) {
+                        consoleResult('Get all from table1');
                         consoleResult(ob);
                     })
                     .catch(function(e) {
@@ -132,6 +135,7 @@
                     tableName: 'table3'
                 })
                     .then(function(ob) {
+                        consoleResult('Get all from table3');
                         consoleResult(ob);
                     })
                     .catch(function(e) {
@@ -148,7 +152,7 @@
                     }
                 ])
                     .then(function(ob) {
-                        consoleResult(ob);
+                        consoleResult('Delete table1 and table3 successfully!');
                     })
                     .catch(function(e) {
                         consoleResult(e);
@@ -157,7 +161,7 @@
             function deleteDB() {
                 IDBM.deleteDB('DEMO_DB')
                     .then(function(ob) {
-                        consoleResult(ob);
+                        consoleResult('Delete DEMO_DB successfully!');
                     })
                     .catch(function(e) {
                         consoleResult(e);
