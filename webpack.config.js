@@ -12,7 +12,6 @@ module.exports = [
         },
         output: {
             path: path.join(__dirname, DEMO_PATH, STATIC_JS),
-            publicPath: PUBLIC_PATH,
             filename: '[name].js',
             library: 'IDBM',
             libraryTarget: 'umd'
