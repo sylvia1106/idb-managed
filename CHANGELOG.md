@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.0.8](https://github.com/sylvia1106/idb-managed/compare/v1.0.7...v1.0.8) (2019-12-23)
+
+
+### Bug Fixes
+
+* modi webpack ([0dc28ab](https://github.com/sylvia1106/idb-managed/commit/0dc28abd206e710a7cada1ff266ba9e8458bce67))
+* update serialize-javascript to 2.1.1+ ([dfb18fd](https://github.com/sylvia1106/idb-managed/commit/dfb18fd7e76460bfb8ba15556a64ac33cf6bcfda))
+
 ### [1.0.7](https://github.com/sylvia1106/idb-managed/compare/v1.0.6...v1.0.7) (2019-11-19)
 
 
