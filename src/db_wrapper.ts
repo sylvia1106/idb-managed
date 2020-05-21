@@ -272,18 +272,21 @@ function upgradeDBWithTableList (
 async function atomicTrans (transaction: any, db: any, tryStatement: Function) {
     try {
         await tryStatement();
+        await transaction.complete;
     } catch (transError) {
         try {
+            // To roll back all operations in this transaction if any error happens.
             transaction.abort();
         } catch (e) {
             // Do nothing if transaction abort failed.
         }
         try {
-            // Catch the Promise error caused by transaction abortion
+            // To catch the Promise error caused by transaction abortion. Otherwise, uncaught rejection will be thrown up.
             await transaction.complete;
         } catch (e) {
-            throw transError;
         }
+        // Throw specific error happened in tryStatement.
+        throw transError;
     } finally {
         db.close();
     }
@@ -296,13 +299,13 @@ async function deleteItemsFromDB (db: any, tableIndexRanges: TableIndexRange[]) 
     const dedupTableNameList: string[] = deduplicateList(validRanges.map(tableIndexRange => tableIndexRange.tableName));
     const deleteItemsTrans = db.transaction(dedupTableNameList, 'readwrite');
     await atomicTrans(deleteItemsTrans, db, async () => {
-        for (const tableIndexRange of validRanges) {
+        await Promise.all(validRanges.map(tableIndexRange => {
             const { tableName, indexRange } = tableIndexRange;
             const table = deleteItemsTrans.objectStore(tableName);
             if (!indexRange) {
-                await table.clear();
+                return table.clear();
             } else {
-                await new Promise(function (resolve) {
+                return new Promise(function (resolve) {
                     table.index(indexRange.indexName).iterateCursor(indexRange2DBKey(indexRange), (cursor: any) => {
                         if (!cursor) {
                             resolve();
@@ -313,7 +316,8 @@ async function deleteItemsFromDB (db: any, tableIndexRanges: TableIndexRange[]) 
                     });
                 });
             }
-        }
+
+        }));
     });
 }
 
@@ -329,9 +333,7 @@ export async function addItems (dbInfo: DB, items: ItemConfig[]) {
                 indexRange: {
                     indexName: EXPIRETIME_KEYNAME,
                     upperIndex: +new Date(),
-                    upperExclusive: false,
-                    lowerIndex: 0,
-                    lowerExclusive: true
+                    upperExclusive: false
                 }
             };
         })
@@ -339,10 +341,8 @@ export async function addItems (dbInfo: DB, items: ItemConfig[]) {
     const db = await createDB(dbInfo);
     const addItemsTrans = db.transaction(dedupTableNameList, 'readwrite');
     await atomicTrans(addItemsTrans, db, async () => {
-        for (const item of items) {
-            const table = addItemsTrans.objectStore(item.tableName);
-            await table.put(itemWrapper(item));
-        }
+        await Promise.all(items.map(item => addItemsTrans.objectStore(item.tableName).put(itemWrapper(item))
+        ));
     });
 }
 
