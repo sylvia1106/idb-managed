@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.0.9](https://github.com/sylvia1106/idb-managed/compare/v1.0.8...v1.0.9) (2020-05-21)
+
+
+### Bug Fixes
+
+* :bug: fix a cursor iteration problem which may happen in some older browsers ([855b1bd](https://github.com/sylvia1106/idb-managed/commit/855b1bdcf3944b38c4efaf85a61487cc54020273))
+* :bug: fix auto-closing problem may happen in atomic transaction ([fcd31c1](https://github.com/sylvia1106/idb-managed/commit/fcd31c1a6526db5ec39e093f3194ed3df5dfc6f8))
+
 ### [1.0.8](https://github.com/sylvia1106/idb-managed/compare/v1.0.7...v1.0.8) (2019-12-23)
 
 
