@@ -31,7 +31,7 @@ interface DB {
     tableList: TableConfig[];
     version: number;
 }
-function indexRange2DBKey (indexRange: IndexRange) {
+function indexRange2DBKey(indexRange: IndexRange) {
     const {
         onlyIndex,
         lowerIndex,
@@ -55,7 +55,7 @@ function indexRange2DBKey (indexRange: IndexRange) {
     }
 }
 
-function itemWrapper (itemConfig: ItemConfig): ItemInTable {
+function itemWrapper(itemConfig: ItemConfig): ItemInTable {
     const currentTime = Date.now();
     return {
         ...itemConfig.item,
@@ -67,7 +67,7 @@ function itemWrapper (itemConfig: ItemConfig): ItemInTable {
     };
 }
 
-function itemUnwrapper (item: ItemInTable) {
+function itemUnwrapper(item: ItemInTable) {
     if (!item) {
         return null;
     } else if (item.expireTime > 0 && item.expireTime < Date.now()) {
@@ -79,7 +79,7 @@ function itemUnwrapper (item: ItemInTable) {
     }
 }
 
-async function registerDBInManager (dbInfo: DB) {
+async function registerDBInManager(dbInfo: DB) {
     const dbManager = await openDBManager();
     const dbAlreadyInManager = ((await getItemFromDB(
         dbManager as any,
@@ -109,7 +109,7 @@ async function registerDBInManager (dbInfo: DB) {
     }
 }
 
-async function unregisterDBInManager (dbName: string) {
+async function unregisterDBInManager(dbName: string) {
     const dbManager = await openDBManager();
     const deleteTrans = dbManager.transaction(
         IDB_MANAGER_DB_TABLE_NAME,
@@ -121,7 +121,7 @@ async function unregisterDBInManager (dbName: string) {
     dbManager.close();
 }
 
-async function createDB (dbInfo: DB) {
+async function createDB(dbInfo: DB) {
     await registerDBInManager(dbInfo);
     const db = await IDB.open(
         dbInfo.name,
@@ -133,7 +133,7 @@ async function createDB (dbInfo: DB) {
     return db;
 }
 
-async function openDBManager () {
+async function openDBManager() {
     return await IDB.open(
         IDB_MANAGER_DB_NAME,
         IDB_MANAGER_VERSION,
@@ -144,7 +144,7 @@ async function openDBManager () {
     );
 }
 
-async function openDB (dbName: string) {
+async function openDB(dbName: string) {
     const dbManager = await openDBManager();
     const dbAlreadyInManager = ((await getItemFromDB(
         dbManager as any,
@@ -170,7 +170,7 @@ async function openDB (dbName: string) {
     }
 }
 
-async function getItemFromDB (
+async function getItemFromDB(
     db: IDBDatabase,
     tableName: string,
     primaryKeyValue: any
@@ -187,13 +187,13 @@ async function getItemFromDB (
     }
 }
 
-function upgradeDBManager (upgradeDB: IDBDatabase) {
+function upgradeDBManager(upgradeDB: IDBDatabase) {
     upgradeDB.createObjectStore(IDB_MANAGER_DB_TABLE_NAME, {
         keyPath: IDB_MANAGER_DB_TABLE_INDEX_NAME
     });
 }
 
-function upgradeDBWithTableList (
+function upgradeDBWithTableList(
     upgradeDB: IDBDatabase,
     tableList: TableConfig[]
 ) {
@@ -269,7 +269,7 @@ function upgradeDBWithTableList (
     }
 }
 
-async function atomicTrans (transaction: any, db: any, tryStatement: Function) {
+async function atomicTrans(transaction: any, db: any, tryStatement: Function) {
     try {
         await tryStatement();
         await transaction.complete;
@@ -292,7 +292,7 @@ async function atomicTrans (transaction: any, db: any, tryStatement: Function) {
     }
 }
 
-async function deleteItemsFromDB (db: any, tableIndexRanges: TableIndexRange[]) {
+async function deleteItemsFromDB(db: any, tableIndexRanges: TableIndexRange[]) {
     const validRanges = tableIndexRanges.filter(indexRange => {
         return db.objectStoreNames.contains(indexRange.tableName);
     });
@@ -321,7 +321,7 @@ async function deleteItemsFromDB (db: any, tableIndexRanges: TableIndexRange[]) 
     });
 }
 
-export async function addItems (dbInfo: DB, items: ItemConfig[]) {
+export async function addItems(dbInfo: DB, items: ItemConfig[]) {
     const dedupTableNameList: string[] = deduplicateList(
         items.map(item => item.tableName)
     );
@@ -346,7 +346,7 @@ export async function addItems (dbInfo: DB, items: ItemConfig[]) {
     });
 }
 
-export async function getItem (
+export async function getItem(
     dbName: string,
     tableName: string,
     primaryKeyValue: any
@@ -370,11 +370,11 @@ export async function getItem (
     }
 }
 
-export async function getItemsInRange (
+export async function getItemsInRange(
     dbName: string,
     tableIndexRange: TableIndexRange
 ) {
-    const { tableName, indexRange } = tableIndexRange;
+    const { tableName, indexRange, direction, count } = tableIndexRange;
     const db = await openDB(dbName);
     if (db) {
         try {
@@ -394,13 +394,17 @@ export async function getItemsInRange (
                         });
                 } else {
                     await new Promise(function (resolve) {
-                        table.index(indexRange.indexName).iterateCursor(indexRange2DBKey(indexRange), (cursor: any) => {
+                        table.index(indexRange.indexName).iterateCursor(indexRange2DBKey(indexRange), direction, (cursor: any) => {
                             if (!cursor) {
                                 resolve();
                                 return;
                             }
                             var item = itemUnwrapper(cursor.value);
                             item && items.push(item);
+                            if (count !== undefined && items.length == count) {
+                                resolve();
+                                return;
+                            }
                             cursor.continue();
                         });
                     });
@@ -417,12 +421,12 @@ export async function getItemsInRange (
     }
 }
 
-export async function deleteDB (dbName: string) {
+export async function deleteDB(dbName: string) {
     await unregisterDBInManager(dbName);
     await IDB.delete(dbName);
 }
 
-export async function deleteItems (
+export async function deleteItems(
     dbName: string,
     tableIndexRanges: TableIndexRange[]
 ) {
