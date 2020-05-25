@@ -36,5 +36,7 @@ export interface IndexRange {
 export interface TableIndexRange {
     tableName: string;
     indexRange?: IndexRange;
+    direction?: IDBCursorDirection;
+    count?: number;
 }
 export type MiliSeconds = number;
