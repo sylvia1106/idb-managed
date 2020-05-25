@@ -374,7 +374,7 @@ export async function getItemsInRange (
     dbName: string,
     tableIndexRange: TableIndexRange
 ) {
-    const { tableName, indexRange } = tableIndexRange;
+    const { tableName, indexRange,direction,count } = tableIndexRange;
     const db = await openDB(dbName);
     if (db) {
         try {
@@ -394,13 +394,17 @@ export async function getItemsInRange (
                         });
                 } else {
                     await new Promise(function (resolve) {
-                        table.index(indexRange.indexName).iterateCursor(indexRange2DBKey(indexRange), (cursor: any) => {
+                        table.index(indexRange.indexName).iterateCursor(indexRange2DBKey(indexRange),direction, (cursor: any) => {
                             if (!cursor) {
                                 resolve();
                                 return;
                             }
                             var item = itemUnwrapper(cursor.value);
                             item && items.push(item);
+                            if (count !== undefined && items.length == count) {
+                                resolve();
+                                return;
+                            }
                             cursor.continue();
                         });
                     });
