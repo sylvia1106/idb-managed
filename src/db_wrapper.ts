@@ -176,12 +176,21 @@ async function getItemFromDB (
     primaryKeyValue: any
 ) {
     if (db.objectStoreNames.contains(tableName)) {
-        const trans = db.transaction(tableName, 'readonly');
+        const trans: any = db.transaction(tableName, 'readonly');
         const table = trans.objectStore(tableName);
-        const itemInTable = ((await table.get(
-            primaryKeyValue
-        )) as any) as ItemInTable;
-        return itemUnwrapper(itemInTable) as any;
+        try {
+            const itemInTable = ((await table.get(
+                primaryKeyValue
+            )) as any) as ItemInTable;
+            await trans.complete;
+            return itemUnwrapper(itemInTable) as any;
+        } catch (error) {
+            try {
+                await trans.complete;
+            } catch (e) {
+            }
+            throw error;
+        }
     } else {
         return null;
     }
@@ -384,26 +393,35 @@ export async function getItemsInRange (
             } else {
                 const trans = db.transaction(tableName, 'readonly');
                 const table = trans.objectStore(tableName);
-                if (!indexRange) {
-                    // Get all items in table if indexRange is undefined
-                    let wrappedItems = await table.getAll();
-                    items = (wrappedItems || [])
-                        .map(itemUnwrapper)
-                        .filter((item: any) => {
-                            return item !== null;
+                try {
+                    if (!indexRange) {
+                        // Get all items in table if indexRange is undefined
+                        let wrappedItems = await table.getAll();
+                        items = (wrappedItems || [])
+                            .map(itemUnwrapper)
+                            .filter((item: any) => {
+                                return item !== null;
+                            });
+                    } else {
+                        await new Promise(function (resolve) {
+                            table.index(indexRange.indexName).iterateCursor(indexRange2DBKey(indexRange), (cursor: any) => {
+                                if (!cursor) {
+                                    resolve();
+                                    return;
+                                }
+                                var item = itemUnwrapper(cursor.value);
+                                item && items.push(item);
+                                cursor.continue();
+                            });
                         });
-                } else {
-                    await new Promise(function (resolve) {
-                        table.index(indexRange.indexName).iterateCursor(indexRange2DBKey(indexRange), (cursor: any) => {
-                            if (!cursor) {
-                                resolve();
-                                return;
-                            }
-                            var item = itemUnwrapper(cursor.value);
-                            item && items.push(item);
-                            cursor.continue();
-                        });
-                    });
+                    }
+                    await trans.complete;
+                } catch (error) {
+                    try {
+                        await trans.complete;
+                    } catch (e) {
+                    }
+                    throw error;
                 }
             }
             return items;
