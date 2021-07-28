@@ -178,18 +178,14 @@ async function getItemFromDB (
     if (db.objectStoreNames.contains(tableName)) {
         const trans: any = db.transaction(tableName, 'readonly');
         const table = trans.objectStore(tableName);
+        let itemInTable: any = null;
         try {
-            const itemInTable = ((await table.get(
+            itemInTable = ((await table.get(
                 primaryKeyValue
             )) as any) as ItemInTable;
+        } finally {
             await trans.complete;
             return itemUnwrapper(itemInTable) as any;
-        } catch (error) {
-            try {
-                await trans.complete;
-            } catch (e) {
-            }
-            throw error;
         }
     } else {
         return null;
@@ -415,13 +411,8 @@ export async function getItemsInRange (
                             });
                         });
                     }
+                } finally {
                     await trans.complete;
-                } catch (error) {
-                    try {
-                        await trans.complete;
-                    } catch (e) {
-                    }
-                    throw error;
                 }
             }
             return items;
