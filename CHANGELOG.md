@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.1.0](https://github.com/sylvia1106/idb-managed/compare/v1.0.9...v1.1.0) (2021-07-29)
+
+
+### Features
+
+* Code optimization ([ffb4ba3](https://github.com/sylvia1106/idb-managed/commit/ffb4ba3df28600b664066a5751b6750311d50a28))
+* Code optimization ([28fb004](https://github.com/sylvia1106/idb-managed/commit/28fb00459d6181d73ad4fd1cd464a9269926f9fe))
+
+
+### Bug Fixes
+
+* handle Uncaught in promise ([0805fb5](https://github.com/sylvia1106/idb-managed/commit/0805fb582a6fb14e0fcd3bcf7b429cc847d55c59))
+
 ### [1.0.9](https://github.com/sylvia1106/idb-managed/compare/v1.0.8...v1.0.9) (2020-05-21)
 
 
