@@ -177,8 +177,8 @@ async function getItemFromDB (
 ) {
     if (db.objectStoreNames.contains(tableName)) {
         const trans: any = db.transaction(tableName, 'readonly');
-        const table = trans.objectStore(tableName);
         try {
+            const table = trans.objectStore(tableName);
             const itemInTable = ((await table.get(
                 primaryKeyValue
             )) as any) as ItemInTable;
@@ -390,8 +390,8 @@ export async function getItemsInRange (
                 // Do nothing if table does not exist.
             } else {
                 const trans = db.transaction(tableName, 'readonly');
-                const table = trans.objectStore(tableName);
                 try {
+                    const table = trans.objectStore(tableName);
                     if (!indexRange) {
                         // Get all items in table if indexRange is undefined
                         let wrappedItems = await table.getAll();
