@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.1](https://github.com/sylvia1106/idb-managed/compare/v1.1.0...v1.1.1) (2021-08-09)
+
+
+### Features
+
+* complete callback error catch ([f93e02a](https://github.com/sylvia1106/idb-managed/commit/f93e02af9f970cc17ac9ad0769c732c727697f35))
+
 ## [1.1.0](https://github.com/sylvia1106/idb-managed/compare/v1.0.9...v1.1.0) (2021-07-29)
 
 
