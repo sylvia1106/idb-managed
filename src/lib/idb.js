@@ -306,13 +306,13 @@ if (idbIsSupported()) {
             if (request) {
                 request.onupgradeneeded = function(event) {
                     if (upgradeCallback) {
-                        upgradeCallback(
-                            new UpgradeDB(
-                                request.result,
-                                event.oldVersion,
-                                request.transaction
-                            )
-                        );
+                        const db = new UpgradeDB(
+                            request.result,
+                            event.oldVersion,
+                            request.transaction
+                        )
+                        db.transaction.complete.catch(() => {});
+                        upgradeCallback(db);
                     }
                 };
             }
