@@ -311,7 +311,7 @@ if (idbIsSupported()) {
                             event.oldVersion,
                             request.transaction
                         )
-                        db.transaction.complete.catch(() => {});
+                        db.transaction.complete.catch(function() {});
                         upgradeCallback(db);
                     }
                 };
