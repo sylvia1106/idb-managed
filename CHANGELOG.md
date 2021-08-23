@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.4](https://github.com/sylvia1106/idb-managed/compare/v1.1.3...v1.1.4) (2021-08-23)
+
+
+### Bug Fixes
+
+* Low version not support Arrow Function Syntax ([fead845](https://github.com/sylvia1106/idb-managed/commit/fead84574929e0d22c5fd4f3ce36ff1de26f9f8b))
+
 ### [1.1.3](https://github.com/sylvia1106/idb-managed/compare/v1.1.2...v1.1.3) (2021-08-23)
 
 
