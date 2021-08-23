@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.3](https://github.com/sylvia1106/idb-managed/compare/v1.1.2...v1.1.3) (2021-08-23)
+
+
+### Bug Fixes
+
+* Low version not support const Syntax ([40427ee](https://github.com/sylvia1106/idb-managed/commit/40427eea82c2f13de78a019e1be8e4081fac4cbd))
+
 ### [1.1.2](https://github.com/sylvia1106/idb-managed/compare/v1.1.1...v1.1.2) (2021-08-19)
 
 
