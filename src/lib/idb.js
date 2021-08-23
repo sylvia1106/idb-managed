@@ -306,7 +306,7 @@ if (idbIsSupported()) {
             if (request) {
                 request.onupgradeneeded = function(event) {
                     if (upgradeCallback) {
-                        const db = new UpgradeDB(
+                        var db = new UpgradeDB(
                             request.result,
                             event.oldVersion,
                             request.transaction
